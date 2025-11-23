@@ -1,6 +1,7 @@
 """ExclusiveContentAgent - Publishes exclusive content for paying members."""
 
 from datetime import datetime, timedelta, timezone
+from typing import Optional
 
 from config.config import settings
 from src.agents.base_agent import BaseAgent

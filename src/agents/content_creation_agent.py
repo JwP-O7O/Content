@@ -250,7 +250,7 @@ Thread:"""
                 end_idx = response_text.rfind("]") + 1
                 json_str = response_text[start_idx:end_idx]
                 thread_tweets = json.loads(json_str)
-            except:
+            except (json.JSONDecodeError, ValueError, IndexError):
                 # Fallback: split by newlines
                 thread_tweets = [
                     t.strip()

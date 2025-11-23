@@ -42,8 +42,8 @@ class MarketScannerAgent(BaseAgent):
                 access_token_secret=settings.twitter_access_token_secret,
                 bearer_token=settings.twitter_bearer_token
             )
-        except:
-            self.log_warning("Twitter API not configured - sentiment scanning disabled")
+        except Exception as e:
+            self.log_warning(f"Twitter API not configured - sentiment scanning disabled: {e}")
             self.twitter_api = None
 
         # Assets to monitor

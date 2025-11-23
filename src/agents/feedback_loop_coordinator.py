@@ -279,7 +279,7 @@ Respond with JSON:
         Returns:
             Dictionary with optimization history
         """
-        from datetime import datetime, timezone
+        from datetime import datetime, timedelta, timezone
 
         cutoff = datetime.now(tz=timezone.utc) - timedelta(days=days)
 
@@ -397,7 +397,7 @@ Format as markdown."""
 
         with get_db() as db:
             # Get recent performance snapshot
-            from datetime import datetime, timezone
+            from datetime import datetime, timedelta, timezone
 
             from src.database.models import PerformanceSnapshot
 

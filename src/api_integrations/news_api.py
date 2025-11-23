@@ -73,7 +73,7 @@ class NewsAPI:
         try:
             from dateutil import parser
             return parser.parse(date_string)
-        except:
+        except (ValueError, ImportError, TypeError):
             return datetime.now(tz=timezone.utc)
 
     async def search_news(self, keyword: str, days_back: int = 7) -> list[dict]:
