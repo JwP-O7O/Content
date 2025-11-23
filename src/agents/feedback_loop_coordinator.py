@@ -1,17 +1,17 @@
 """FeedbackLoopCoordinator - Coordinates the continuous learning and optimization system."""
 
-from typing import Dict, List
-from datetime import datetime
 import json
+from datetime import datetime
+
 from anthropic import Anthropic
 
-from src.agents.base_agent import BaseAgent
-from src.agents.strategy_tuning_agent import StrategyTuningAgent
+from config.config import settings
 from src.agents.ab_testing_agent import ABTestingAgent
+from src.agents.base_agent import BaseAgent
 from src.agents.performance_analytics_agent import PerformanceAnalyticsAgent
+from src.agents.strategy_tuning_agent import StrategyTuningAgent
 from src.database.connection import get_db
 from src.database.models import AgentLog
-from config.config import settings
 
 
 class FeedbackLoopCoordinator(BaseAgent):
@@ -43,7 +43,7 @@ class FeedbackLoopCoordinator(BaseAgent):
         self.optimization_cycle_hours = settings.feedback_loop_optimization_cycle_hours
         self.min_confidence_for_changes = settings.feedback_loop_min_confidence_for_changes
 
-    async def execute(self) -> Dict:
+    async def execute(self) -> dict:
         """
         Execute the feedback loop coordination.
 
@@ -102,7 +102,7 @@ class FeedbackLoopCoordinator(BaseAgent):
 
         return results
 
-    async def _synthesize_learnings(self, component_results: Dict) -> Dict:
+    async def _synthesize_learnings(self, component_results: dict) -> dict:
         """
         Synthesize learnings from all optimization components.
 
@@ -174,8 +174,8 @@ Respond with JSON:
             response_text = message.content[0].text.strip()
 
             # Parse JSON
-            start_idx = response_text.find('{')
-            end_idx = response_text.rfind('}') + 1
+            start_idx = response_text.find("{")
+            end_idx = response_text.rfind("}") + 1
             json_str = response_text[start_idx:end_idx]
             synthesis = json.loads(json_str)
 
@@ -202,7 +202,7 @@ Respond with JSON:
                 "actions": []
             }
 
-    def _is_safe_action(self, action: Dict) -> bool:
+    def _is_safe_action(self, action: dict) -> bool:
         """
         Check if an action is safe to apply automatically.
 
@@ -232,7 +232,7 @@ Respond with JSON:
 
         return True
 
-    async def _apply_coordinated_action(self, action: Dict) -> bool:
+    async def _apply_coordinated_action(self, action: dict) -> bool:
         """
         Apply a coordinated optimization action.
 
@@ -272,7 +272,7 @@ Respond with JSON:
             self.log_error(f"Error applying coordinated action: {e}")
             return False
 
-    async def get_optimization_history(self, days: int = 30) -> Dict:
+    async def get_optimization_history(self, days: int = 30) -> dict:
         """
         Get history of optimizations made by the feedback loop.
 
@@ -390,7 +390,7 @@ Format as markdown."""
 - Conversion Efficiency: {roi_metrics['conversion_efficiency']:.1f}%
 """
 
-    async def get_system_health_score(self) -> Dict:
+    async def get_system_health_score(self) -> dict:
         """
         Calculate an overall system health score.
 
@@ -401,8 +401,9 @@ Format as markdown."""
 
         with get_db() as db:
             # Get recent performance snapshot
-            from src.database.models import PerformanceSnapshot
             from datetime import timedelta
+
+            from src.database.models import PerformanceSnapshot
 
             cutoff = datetime.utcnow() - timedelta(days=1)
 

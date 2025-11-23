@@ -2,19 +2,16 @@
 
 import asyncio
 import json
-from typing import Dict, List, Optional
 from datetime import datetime, timedelta
+
 import pandas as pd
 from anthropic import Anthropic
 
-from src.agents.base_agent import BaseAgent
-from src.database.connection import get_db
-from src.database.models import (
-    MarketData, NewsArticle, SentimentData,
-    Insight, InsightType
-)
-from src.api_integrations.exchange_api import ExchangeAPI
 from config.config import settings
+from src.agents.base_agent import BaseAgent
+from src.api_integrations.exchange_api import ExchangeAPI
+from src.database.connection import get_db
+from src.database.models import Insight, InsightType, MarketData, NewsArticle, SentimentData
 
 
 class AnalysisAgent(BaseAgent):
@@ -40,7 +37,7 @@ class AnalysisAgent(BaseAgent):
         self.min_confidence = 0.5  # Minimum confidence to save insight
         self.lookback_hours = 24  # How far back to look for data
 
-    async def execute(self) -> Dict:
+    async def execute(self) -> dict:
         """
         Execute the analysis process.
 
@@ -71,7 +68,7 @@ class AnalysisAgent(BaseAgent):
                     )
                 except Exception as e:
                     self.log_error(f"Error analyzing {asset}: {e}")
-                    results["errors"].append(f"{asset}: {str(e)}")
+                    results["errors"].append(f"{asset}: {e!s}")
 
             self.log_info(
                 f"Analysis complete: {results['insights_generated']} insights generated, "
@@ -84,7 +81,7 @@ class AnalysisAgent(BaseAgent):
 
         return results
 
-    async def _get_active_assets(self) -> List[str]:
+    async def _get_active_assets(self) -> list[str]:
         """
         Get list of assets that have recent market data.
 
@@ -100,7 +97,7 @@ class AnalysisAgent(BaseAgent):
 
             return [a[0] for a in assets]
 
-    async def _analyze_asset(self, asset: str) -> List[Insight]:
+    async def _analyze_asset(self, asset: str) -> list[Insight]:
         """
         Perform comprehensive analysis on a specific asset.
 
@@ -164,7 +161,7 @@ class AnalysisAgent(BaseAgent):
                 for d in data
             ])
 
-    async def _get_news_data(self, asset: str) -> List[NewsArticle]:
+    async def _get_news_data(self, asset: str) -> list[NewsArticle]:
         """Get recent news mentioning the asset."""
         cutoff_time = datetime.utcnow() - timedelta(hours=self.lookback_hours)
 
@@ -182,7 +179,7 @@ class AnalysisAgent(BaseAgent):
 
             return relevant_news
 
-    async def _get_sentiment_data(self, asset: str) -> List[SentimentData]:
+    async def _get_sentiment_data(self, asset: str) -> list[SentimentData]:
         """Get recent sentiment data for the asset."""
         cutoff_time = datetime.utcnow() - timedelta(hours=self.lookback_hours)
 
@@ -198,7 +195,7 @@ class AnalysisAgent(BaseAgent):
         self,
         asset: str,
         market_data: pd.DataFrame
-    ) -> List[Insight]:
+    ) -> list[Insight]:
         """
         Perform technical analysis and generate insights.
 
@@ -236,7 +233,7 @@ class AnalysisAgent(BaseAgent):
                     "price": price,
                     "change_24h": change,
                     "volume_ratio": volume_ratio,
-                    "market_data": market_data.tail(20).to_dict('records')
+                    "market_data": market_data.tail(20).to_dict("records")
                 }
             )
 
@@ -284,8 +281,8 @@ class AnalysisAgent(BaseAgent):
     async def _news_impact_analysis(
         self,
         asset: str,
-        news_data: List[NewsArticle]
-    ) -> List[Insight]:
+        news_data: list[NewsArticle]
+    ) -> list[Insight]:
         """
         Analyze news impact on the asset.
 
@@ -332,8 +329,8 @@ class AnalysisAgent(BaseAgent):
     async def _sentiment_analysis(
         self,
         asset: str,
-        sentiment_data: List[SentimentData]
-    ) -> List[Insight]:
+        sentiment_data: list[SentimentData]
+    ) -> list[Insight]:
         """
         Analyze sentiment shifts for the asset.
 
@@ -384,7 +381,7 @@ class AnalysisAgent(BaseAgent):
         self,
         asset: str,
         insight_type: str,
-        data: Dict
+        data: dict
     ) -> str:
         """
         Use LLM to generate detailed analysis.

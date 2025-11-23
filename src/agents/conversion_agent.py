@@ -1,16 +1,15 @@
 """ConversionAgent - Converts highly engaged users to paying members."""
 
-import asyncio
-from typing import Dict, List
 from datetime import datetime, timedelta
+
 from anthropic import Anthropic
 
-from src.agents.base_agent import BaseAgent
-from src.database.connection import get_db
-from src.database.models import CommunityUser, UserInteraction, ConversionAttempt, UserTier
-from src.api_integrations.twitter_api import TwitterAPI
-from src.api_integrations.stripe_api import StripeAPI
 from config.config import settings
+from src.agents.base_agent import BaseAgent
+from src.api_integrations.stripe_api import StripeAPI
+from src.api_integrations.twitter_api import TwitterAPI
+from src.database.connection import get_db
+from src.database.models import CommunityUser, ConversionAttempt, UserInteraction, UserTier
 
 
 class ConversionAgent(BaseAgent):
@@ -58,7 +57,7 @@ class ConversionAgent(BaseAgent):
         self.dm_cooldown_days = settings.conversion_dm_cooldown_days
         self.max_dms_per_run = 10
 
-    async def execute(self) -> Dict:
+    async def execute(self) -> dict:
         """
         Execute the conversion process.
 
@@ -149,7 +148,7 @@ class ConversionAgent(BaseAgent):
 
             db.commit()
 
-    def _calculate_engagement_score(self, interactions: List[UserInteraction]) -> float:
+    def _calculate_engagement_score(self, interactions: list[UserInteraction]) -> float:
         """
         Calculate engagement score based on interactions.
 
@@ -182,7 +181,7 @@ class ConversionAgent(BaseAgent):
 
         return round(score, 2)
 
-    async def _identify_conversion_candidates(self) -> List[CommunityUser]:
+    async def _identify_conversion_candidates(self) -> list[CommunityUser]:
         """
         Identify users who are good candidates for conversion.
 
@@ -210,7 +209,7 @@ class ConversionAgent(BaseAgent):
 
             return candidates
 
-    async def _create_discount_code(self) -> Dict:
+    async def _create_discount_code(self) -> dict:
         """
         Create a time-limited discount code.
 
@@ -242,7 +241,7 @@ class ConversionAgent(BaseAgent):
     async def _send_conversion_dm(
         self,
         user: CommunityUser,
-        discount_code: Dict
+        discount_code: dict
     ) -> bool:
         """
         Send a personalized conversion DM to a user.
@@ -272,7 +271,7 @@ class ConversionAgent(BaseAgent):
                     "twitter_id": user.twitter_id,
                     "source": "conversion_agent"
                 },
-                discount_code=discount_code['id']
+                discount_code=discount_code["id"]
             )
 
         # Add payment link to message
@@ -291,7 +290,7 @@ class ConversionAgent(BaseAgent):
                 user_id=user.id,
                 platform="twitter",
                 message_text=message,
-                discount_code=discount_code['id'] if discount_code else None,
+                discount_code=discount_code["id"] if discount_code else None,
                 discount_percentage=self.discount_percentage,
                 status="sent"
             )
@@ -309,7 +308,7 @@ class ConversionAgent(BaseAgent):
     async def _generate_conversion_message(
         self,
         user: CommunityUser,
-        discount_code: Dict
+        discount_code: dict
     ) -> str:
         """
         Generate a personalized conversion message using LLM.
@@ -410,7 +409,7 @@ DM:"""
                     f"User {user.twitter_username} successfully converted! 🎉"
                 )
 
-    async def get_conversion_metrics(self, days: int = 30) -> Dict:
+    async def get_conversion_metrics(self, days: int = 30) -> dict:
         """
         Get conversion metrics for the last N days.
 

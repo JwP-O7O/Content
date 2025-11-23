@@ -1,12 +1,11 @@
 """Unit tests for agents."""
 
-import pytest
-import asyncio
-from unittest.mock import Mock, patch, MagicMock
-from datetime import datetime
+from unittest.mock import Mock, patch
 
-from src.agents.base_agent import BaseAgent
+import pytest
+
 from src.agents.ab_testing_agent import ABTestingAgent
+from src.agents.base_agent import BaseAgent
 from src.agents.strategy_tuning_agent import StrategyTuningAgent
 
 
@@ -22,10 +21,10 @@ class TestBaseAgent:
 
         agent = ConcreteAgent("TestAgent")
         assert agent.name == "TestAgent"
-        assert hasattr(agent, 'log_info')
-        assert hasattr(agent, 'log_error')
+        assert hasattr(agent, "log_info")
+        assert hasattr(agent, "log_error")
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_base_agent_run_calls_execute(self):
         """Test that run() calls execute()."""
         # Create a concrete implementation for testing
@@ -49,7 +48,7 @@ class TestABTestingAgent:
 
     def test_ab_testing_agent_initialization(self):
         """Test A/B testing agent initializes with correct settings."""
-        with patch('src.agents.ab_testing_agent.Anthropic'):
+        with patch("src.agents.ab_testing_agent.Anthropic"):
             agent = ABTestingAgent()
             assert agent.min_sample_size == 100
             assert agent.confidence_threshold == 0.95
@@ -58,7 +57,7 @@ class TestABTestingAgent:
 
     def test_calculate_statistical_significance(self):
         """Test statistical significance calculation."""
-        with patch('src.agents.ab_testing_agent.Anthropic'):
+        with patch("src.agents.ab_testing_agent.Anthropic"):
             agent = ABTestingAgent()
 
             # Test with clear winner (high significance)
@@ -81,7 +80,7 @@ class TestABTestingAgent:
 
     def test_calculate_statistical_significance_edge_cases(self):
         """Test edge cases in statistical calculation."""
-        with patch('src.agents.ab_testing_agent.Anthropic'):
+        with patch("src.agents.ab_testing_agent.Anthropic"):
             agent = ABTestingAgent()
 
             # Zero total should return 0
@@ -99,16 +98,16 @@ class TestStrategyTuningAgent:
 
     def test_strategy_tuning_agent_initialization(self):
         """Test strategy tuning agent initializes correctly."""
-        with patch('src.agents.strategy_tuning_agent.Anthropic'):
+        with patch("src.agents.strategy_tuning_agent.Anthropic"):
             agent = StrategyTuningAgent()
             assert agent.min_data_points == 50
             assert agent.confidence_level == 0.8
             assert agent.max_adjustments_per_run == 5
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_execute_returns_structure(self):
         """Test that execute returns expected structure."""
-        with patch('src.agents.strategy_tuning_agent.Anthropic'):
+        with patch("src.agents.strategy_tuning_agent.Anthropic"):
             agent = StrategyTuningAgent()
 
             # Create async mock functions
@@ -149,7 +148,7 @@ class TestPerformanceAnalytics:
         """Test trend calculation logic."""
         from src.agents.performance_analytics_agent import PerformanceAnalyticsAgent
 
-        with patch('src.agents.performance_analytics_agent.Anthropic'):
+        with patch("src.agents.performance_analytics_agent.Anthropic"):
             agent = PerformanceAnalyticsAgent()
 
             # Increasing trend
@@ -175,7 +174,7 @@ class TestPerformanceAnalytics:
         """Test anomaly detection logic."""
         from src.agents.performance_analytics_agent import PerformanceAnalyticsAgent
 
-        with patch('src.agents.performance_analytics_agent.Anthropic'):
+        with patch("src.agents.performance_analytics_agent.Anthropic"):
             agent = PerformanceAnalyticsAgent()
 
             # Clear anomaly (spike) - most recent value first
@@ -195,9 +194,9 @@ def test_configuration_loading():
     from config.config import settings
 
     # Test that Phase 4 settings are available
-    assert hasattr(settings, 'ab_testing_min_sample_size')
-    assert hasattr(settings, 'strategy_tuning_confidence_level')
-    assert hasattr(settings, 'feedback_loop_optimization_cycle_hours')
+    assert hasattr(settings, "ab_testing_min_sample_size")
+    assert hasattr(settings, "strategy_tuning_confidence_level")
+    assert hasattr(settings, "feedback_loop_optimization_cycle_hours")
 
     # Test default values
     assert settings.ab_testing_min_sample_size == 100

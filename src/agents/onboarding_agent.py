@@ -1,14 +1,13 @@
 """OnboardingAgent - Welcomes and onboards new paying members."""
 
-from typing import Dict, List
 from datetime import datetime, timedelta
 
+from config.config import settings
 from src.agents.base_agent import BaseAgent
-from src.database.connection import get_db
-from src.database.models import CommunityUser, Subscription, UserTier
 from src.api_integrations.discord_api import DiscordAPI
 from src.api_integrations.telegram_api import TelegramAPI
-from config.config import settings
+from src.database.connection import get_db
+from src.database.models import CommunityUser, Subscription, UserTier
 
 
 class OnboardingAgent(BaseAgent):
@@ -54,7 +53,7 @@ class OnboardingAgent(BaseAgent):
             UserTier.VIP: settings.discord_role_id_vip
         }
 
-    async def execute(self) -> Dict:
+    async def execute(self) -> dict:
         """
         Execute the onboarding process for new members.
 
@@ -108,7 +107,7 @@ class OnboardingAgent(BaseAgent):
 
         return results
 
-    async def _get_new_members(self) -> List[CommunityUser]:
+    async def _get_new_members(self) -> list[CommunityUser]:
         """
         Get members who recently subscribed but haven't been onboarded.
 

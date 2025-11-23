@@ -1,14 +1,10 @@
 """AnalyticsAgent - Tracks and analyzes system performance."""
 
-from typing import Dict, List
 from datetime import datetime, timedelta
 
 from src.agents.base_agent import BaseAgent
 from src.database.connection import get_db
-from src.database.models import (
-    PublishedContent, Insight, ContentPlan,
-    AgentLog, MarketData
-)
+from src.database.models import AgentLog, ContentPlan, Insight, PublishedContent
 from src.utils.metrics_collector import MetricsCollector
 
 
@@ -29,7 +25,7 @@ class AnalyticsAgent(BaseAgent):
         super().__init__("AnalyticsAgent")
         self.metrics_collector = MetricsCollector()
 
-    async def execute(self) -> Dict:
+    async def execute(self) -> dict:
         """
         Execute analytics collection and reporting.
 
@@ -80,7 +76,7 @@ class AnalyticsAgent(BaseAgent):
 
         return results
 
-    async def _analyze_agent_performance(self) -> Dict:
+    async def _analyze_agent_performance(self) -> dict:
         """
         Analyze the performance of all agents.
 
@@ -141,9 +137,9 @@ class AnalyticsAgent(BaseAgent):
 
     async def _generate_recommendations(
         self,
-        performance: Dict,
-        trending: List[Dict]
-    ) -> List[str]:
+        performance: dict,
+        trending: list[dict]
+    ) -> list[str]:
         """
         Generate actionable recommendations based on analytics.
 
@@ -314,7 +310,7 @@ End of Report
 
         return report
 
-    async def get_kpi_dashboard(self) -> Dict:
+    async def get_kpi_dashboard(self) -> dict:
         """
         Get key performance indicators for dashboard display.
 

@@ -1,18 +1,22 @@
 """ABTestingAgent - Automatically tests content variations for optimization."""
 
-from typing import Dict, List, Optional
-from datetime import datetime, timedelta
 import json
-from anthropic import Anthropic
 import math
+from datetime import datetime, timedelta
+from typing import Optional
 
+from anthropic import Anthropic
+
+from config.config import settings
 from src.agents.base_agent import BaseAgent
 from src.database.connection import get_db
 from src.database.models import (
-    ABTest, ABTestVariant, TestStatus, PublishedContent,
-    Insight, ContentPlan, InsightType
+    ABTest,
+    ABTestVariant,
+    Insight,
+    PublishedContent,
+    TestStatus,
 )
-from config.config import settings
 
 
 class ABTestingAgent(BaseAgent):
@@ -51,7 +55,7 @@ class ABTestingAgent(BaseAgent):
             "hashtag_count"
         ]
 
-    async def execute(self) -> Dict:
+    async def execute(self) -> dict:
         """
         Execute A/B testing workflow.
 
@@ -91,7 +95,7 @@ class ABTestingAgent(BaseAgent):
 
         return results
 
-    async def _analyze_active_tests(self) -> Dict:
+    async def _analyze_active_tests(self) -> dict:
         """
         Analyze all active A/B tests.
 
@@ -214,8 +218,8 @@ class ABTestingAgent(BaseAgent):
     async def _analyze_test_results(
         self,
         test: ABTest,
-        variants: List[ABTestVariant]
-    ) -> Optional[Dict]:
+        variants: list[ABTestVariant]
+    ) -> Optional[dict]:
         """
         Analyze test results to determine if there's a clear winner.
 
@@ -387,7 +391,7 @@ Provide a single-sentence insight explaining why the winning variant likely perf
             self.log_error(f"Error generating test insight: {e}")
             return f"Variant {winner.variant_name} performed {improvement:.1f}% better than control"
 
-    async def _create_new_tests(self) -> Dict:
+    async def _create_new_tests(self) -> dict:
         """
         Create new A/B tests based on opportunities.
 
@@ -494,7 +498,7 @@ Provide a single-sentence insight explaining why the winning variant likely perf
         insight: Insight,
         variable: str,
         test_id: int
-    ) -> List[Dict]:
+    ) -> list[dict]:
         """
         Generate test variants using AI.
 
@@ -542,8 +546,8 @@ Be creative and data-driven in your variations."""
             response_text = message.content[0].text.strip()
 
             # Parse JSON
-            start_idx = response_text.find('[')
-            end_idx = response_text.rfind(']') + 1
+            start_idx = response_text.find("[")
+            end_idx = response_text.rfind("]") + 1
             json_str = response_text[start_idx:end_idx]
             variants = json.loads(json_str)
 
@@ -566,7 +570,7 @@ Be creative and data-driven in your variations."""
                 }
             ]
 
-    async def get_test_results(self, test_id: int) -> Dict:
+    async def get_test_results(self, test_id: int) -> dict:
         """
         Get detailed results for a specific test.
 
@@ -610,7 +614,7 @@ Be creative and data-driven in your variations."""
                 ]
             }
 
-    async def get_all_learnings(self, days: int = 30) -> List[Dict]:
+    async def get_all_learnings(self, days: int = 30) -> list[dict]:
         """
         Get all learnings from completed tests.
 

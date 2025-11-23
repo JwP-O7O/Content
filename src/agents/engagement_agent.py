@@ -1,15 +1,16 @@
 """EngagementAgent - Monitors and engages with the audience."""
 
 import asyncio
-from typing import Dict, List, Optional
 from datetime import datetime, timedelta
+from typing import Optional
+
 from anthropic import Anthropic
 
-from src.agents.base_agent import BaseAgent
-from src.database.connection import get_db
-from src.database.models import PublishedContent, AgentLog
-from src.api_integrations.twitter_api import TwitterAPI
 from config.config import settings
+from src.agents.base_agent import BaseAgent
+from src.api_integrations.twitter_api import TwitterAPI
+from src.database.connection import get_db
+from src.database.models import PublishedContent
 
 
 class EngagementAgent(BaseAgent):
@@ -54,7 +55,7 @@ class EngagementAgent(BaseAgent):
         # Track engaged users for later conversion
         self.engaged_users = {}
 
-    async def execute(self) -> Dict:
+    async def execute(self) -> dict:
         """
         Execute the engagement process.
 
@@ -117,7 +118,7 @@ class EngagementAgent(BaseAgent):
 
         return results
 
-    async def _get_recent_published_content(self) -> List[PublishedContent]:
+    async def _get_recent_published_content(self) -> list[PublishedContent]:
         """Get recently published content from the last 24 hours."""
         cutoff_time = datetime.utcnow() - timedelta(hours=24)
 
@@ -129,7 +130,7 @@ class EngagementAgent(BaseAgent):
 
             return content
 
-    async def _monitor_and_respond_to_mentions(self) -> Dict:
+    async def _monitor_and_respond_to_mentions(self) -> dict:
         """Monitor mentions and respond to them."""
         self.log_info("Monitoring mentions...")
 
@@ -167,7 +168,7 @@ class EngagementAgent(BaseAgent):
 
         return results
 
-    async def _engage_with_replies(self, recent_content: List[PublishedContent]) -> Dict:
+    async def _engage_with_replies(self, recent_content: list[PublishedContent]) -> dict:
         """Engage with replies to our content."""
         self.log_info("Engaging with replies...")
 
@@ -196,7 +197,7 @@ class EngagementAgent(BaseAgent):
 
         return results
 
-    async def _find_and_retweet_influential_content(self) -> Dict:
+    async def _find_and_retweet_influential_content(self) -> dict:
         """Find and retweet relevant content from influential accounts."""
         self.log_info("Finding influential content to retweet...")
 
@@ -230,8 +231,8 @@ class EngagementAgent(BaseAgent):
 
     async def _update_engagement_metrics(
         self,
-        recent_content: List[PublishedContent]
-    ) -> Dict:
+        recent_content: list[PublishedContent]
+    ) -> dict:
         """Update engagement metrics for recent content."""
         self.log_info("Updating engagement metrics...")
 
@@ -254,7 +255,7 @@ class EngagementAgent(BaseAgent):
 
         return results
 
-    async def _should_reply_to_tweet(self, tweet: Dict) -> bool:
+    async def _should_reply_to_tweet(self, tweet: dict) -> bool:
         """
         Determine if we should reply to a tweet.
 
@@ -281,7 +282,7 @@ class EngagementAgent(BaseAgent):
 
         return is_question and not has_negative_sentiment
 
-    async def _generate_reply(self, tweet: Dict) -> Optional[str]:
+    async def _generate_reply(self, tweet: dict) -> Optional[str]:
         """
         Generate an intelligent reply to a tweet using LLM.
 
@@ -322,7 +323,7 @@ Reply:"""
             self.log_error(f"Error generating reply: {e}")
             return None
 
-    async def _should_retweet(self, tweet: Dict) -> bool:
+    async def _should_retweet(self, tweet: dict) -> bool:
         """
         Determine if we should retweet content.
 
@@ -376,7 +377,7 @@ Reply:"""
     async def get_highly_engaged_users(
         self,
         min_interactions: int = 3
-    ) -> List[Dict]:
+    ) -> list[dict]:
         """
         Get users who have engaged multiple times.
 

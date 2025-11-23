@@ -1,14 +1,10 @@
 """ContentStrategistAgent - Plans content strategy based on insights."""
 
-from typing import Dict, List
 from datetime import datetime, timedelta
 
 from src.agents.base_agent import BaseAgent
 from src.database.connection import get_db
-from src.database.models import (
-    Insight, ContentPlan, ContentFormat,
-    InsightType, PublishedContent
-)
+from src.database.models import ContentFormat, ContentPlan, Insight, InsightType, PublishedContent
 
 
 class ContentStrategistAgent(BaseAgent):
@@ -67,7 +63,7 @@ class ContentStrategistAgent(BaseAgent):
         self.enable_repurposing = True
         self.repurpose_high_performing_threshold = 0.05  # 5% engagement rate
 
-    async def execute(self) -> Dict:
+    async def execute(self) -> dict:
         """
         Execute the content planning process.
 
@@ -144,7 +140,7 @@ class ContentStrategistAgent(BaseAgent):
 
         return results
 
-    async def _get_unpublished_insights(self) -> List[Insight]:
+    async def _get_unpublished_insights(self) -> list[Insight]:
         """
         Get insights that haven't been published yet.
 
@@ -164,7 +160,7 @@ class ContentStrategistAgent(BaseAgent):
 
             return insights
 
-    async def _get_todays_content_plans(self) -> List[ContentPlan]:
+    async def _get_todays_content_plans(self) -> list[ContentPlan]:
         """
         Get content plans created today.
 
@@ -283,7 +279,7 @@ class ContentStrategistAgent(BaseAgent):
         )
         return next_time
 
-    async def optimize_strategy(self) -> Dict:
+    async def optimize_strategy(self) -> dict:
         """
         Analyze past performance and optimize content strategy.
 
@@ -337,7 +333,7 @@ class ContentStrategistAgent(BaseAgent):
                 "recommendations": self._generate_recommendations(format_performance)
             }
 
-    def _generate_recommendations(self, performance: Dict) -> List[str]:
+    def _generate_recommendations(self, performance: dict) -> list[str]:
         """Generate strategy recommendations based on performance data."""
         recommendations = []
 
@@ -364,7 +360,7 @@ class ContentStrategistAgent(BaseAgent):
 
         return recommendations
 
-    async def plan_content_repurposing(self) -> Dict:
+    async def plan_content_repurposing(self) -> dict:
         """
         Identify high-performing content and create plans to repurpose it.
 
@@ -442,7 +438,7 @@ class ContentStrategistAgent(BaseAgent):
             # If there are already 2+ plans for this insight, skip
             return other_plans >= 2
 
-    def _create_repurpose_plans(self, content: PublishedContent) -> List[Dict]:
+    def _create_repurpose_plans(self, content: PublishedContent) -> list[dict]:
         """
         Create repurposing plans for high-performing content.
 

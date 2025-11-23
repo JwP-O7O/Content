@@ -1,7 +1,7 @@
 """System verification script - Checks if all components are correctly installed."""
 
 import sys
-from typing import Dict, List
+
 from loguru import logger
 
 from src.utils.logger import setup_logger
@@ -16,7 +16,7 @@ class SystemVerifier:
         self.warnings = []
         self.successes = []
 
-    def verify_all(self) -> Dict:
+    def verify_all(self) -> dict:
         """
         Run all verification checks.
 
@@ -183,8 +183,9 @@ class SystemVerifier:
     def _check_database_schema(self):
         """Check if database tables exist."""
         try:
-            from src.database.connection import engine
             from sqlalchemy import inspect
+
+            from src.database.connection import engine
 
             inspector = inspect(engine)
             tables = inspector.get_table_names()

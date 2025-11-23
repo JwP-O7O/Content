@@ -1,9 +1,10 @@
 """Telegram API integration."""
 
+from typing import Optional
+
+from loguru import logger
 from telegram import Bot
 from telegram.error import TelegramError
-from typing import Optional, Dict
-from loguru import logger
 
 
 class TelegramAPI:
@@ -28,7 +29,7 @@ class TelegramAPI:
         text: str,
         parse_mode: str = "Markdown",
         disable_preview: bool = False
-    ) -> Optional[Dict]:
+    ) -> Optional[dict]:
         """
         Send a message to the configured Telegram channel.
 
@@ -66,7 +67,7 @@ class TelegramAPI:
         photo_url: str,
         caption: str = "",
         parse_mode: str = "Markdown"
-    ) -> Optional[Dict]:
+    ) -> Optional[dict]:
         """
         Send a photo to the configured Telegram channel.
 
@@ -104,7 +105,7 @@ class TelegramAPI:
         message_id: int,
         new_text: str,
         parse_mode: str = "Markdown"
-    ) -> Optional[Dict]:
+    ) -> Optional[dict]:
         """
         Edit an existing message.
 

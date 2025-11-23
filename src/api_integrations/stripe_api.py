@@ -1,8 +1,9 @@
 """Stripe API integration for payment processing."""
 
-import stripe
-from typing import Dict, Optional
 from datetime import datetime
+from typing import Optional
+
+import stripe
 from loguru import logger
 
 from config.config import settings
@@ -20,7 +21,7 @@ class StripeAPI:
         Args:
             api_key: Stripe API key (defaults to settings)
         """
-        self.api_key = api_key or getattr(settings, 'stripe_api_key', None)
+        self.api_key = api_key or getattr(settings, "stripe_api_key", None)
 
         if self.api_key:
             stripe.api_key = self.api_key
@@ -32,8 +33,8 @@ class StripeAPI:
         self,
         email: str,
         name: Optional[str] = None,
-        metadata: Optional[Dict] = None
-    ) -> Optional[Dict]:
+        metadata: Optional[dict] = None
+    ) -> Optional[dict]:
         """
         Create a new Stripe customer.
 
@@ -70,8 +71,8 @@ class StripeAPI:
         customer_id: str,
         price_id: str,
         trial_days: int = 0,
-        metadata: Optional[Dict] = None
-    ) -> Optional[Dict]:
+        metadata: Optional[dict] = None
+    ) -> Optional[dict]:
         """
         Create a subscription for a customer.
 
@@ -120,7 +121,7 @@ class StripeAPI:
         self,
         subscription_id: str,
         at_period_end: bool = True
-    ) -> Optional[Dict]:
+    ) -> Optional[dict]:
         """
         Cancel a subscription.
 
@@ -157,7 +158,7 @@ class StripeAPI:
     def create_payment_link(
         self,
         price_id: str,
-        metadata: Optional[Dict] = None,
+        metadata: Optional[dict] = None,
         discount_code: Optional[str] = None
     ) -> Optional[str]:
         """
@@ -196,7 +197,7 @@ class StripeAPI:
         duration: str = "once",
         duration_in_months: Optional[int] = None,
         max_redemptions: Optional[int] = None
-    ) -> Optional[Dict]:
+    ) -> Optional[dict]:
         """
         Create a discount/promo code.
 
@@ -236,7 +237,7 @@ class StripeAPI:
             logger.error(f"Error creating discount code: {e}")
             return None
 
-    def get_subscription(self, subscription_id: str) -> Optional[Dict]:
+    def get_subscription(self, subscription_id: str) -> Optional[dict]:
         """
         Get subscription details.
 
@@ -271,7 +272,7 @@ class StripeAPI:
         payload: bytes,
         sig_header: str,
         webhook_secret: str
-    ) -> Optional[Dict]:
+    ) -> Optional[dict]:
         """
         Construct and verify a webhook event.
 

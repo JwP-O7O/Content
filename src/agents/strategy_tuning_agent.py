@@ -1,17 +1,17 @@
 """StrategyTuningAgent - Automatically optimizes system strategies based on performance."""
 
-from typing import Dict, List
-from datetime import datetime, timedelta
 import json
+from datetime import datetime, timedelta
 
+from anthropic import Anthropic
+
+from config.config import settings
 from src.agents.base_agent import BaseAgent
 from src.database.connection import get_db
 from src.database.models import (
-    PublishedContent, Insight, ConversionAttempt,
-    ExclusiveContent, ContentFormat, InsightType
+    ConversionAttempt,
+    PublishedContent,
 )
-from anthropic import Anthropic
-from config.config import settings
 
 
 class StrategyTuningAgent(BaseAgent):
@@ -40,7 +40,7 @@ class StrategyTuningAgent(BaseAgent):
         self.confidence_level = settings.strategy_tuning_confidence_level
         self.max_adjustments_per_run = settings.strategy_tuning_max_adjustments_per_run
 
-    async def execute(self) -> Dict:
+    async def execute(self) -> dict:
         """
         Execute strategy optimization.
 
@@ -94,7 +94,7 @@ class StrategyTuningAgent(BaseAgent):
 
         return results
 
-    async def _analyze_content_performance(self) -> Dict:
+    async def _analyze_content_performance(self) -> dict:
         """
         Analyze which content performs best.
 
@@ -188,7 +188,7 @@ class StrategyTuningAgent(BaseAgent):
                 "total_content_analyzed": len(content_items)
             }
 
-    async def _analyze_conversion_performance(self) -> Dict:
+    async def _analyze_conversion_performance(self) -> dict:
         """
         Analyze conversion funnel performance.
 
@@ -248,7 +248,7 @@ class StrategyTuningAgent(BaseAgent):
                 "total_attempts_analyzed": total
             }
 
-    async def _analyze_optimal_posting_times(self) -> Dict:
+    async def _analyze_optimal_posting_times(self) -> dict:
         """
         Analyze which posting times get best engagement.
 
@@ -309,7 +309,7 @@ class StrategyTuningAgent(BaseAgent):
                 "worst_posting_hours": [hour for hour, _ in sorted_hours[-3:]]
             }
 
-    async def _generate_tuning_recommendations(self, analyses: Dict) -> List[Dict]:
+    async def _generate_tuning_recommendations(self, analyses: dict) -> list[dict]:
         """
         Use AI to generate strategic tuning recommendations.
 
@@ -356,8 +356,8 @@ Format as JSON array:
             # Parse JSON response
             try:
                 # Extract JSON from response
-                start_idx = response_text.find('[')
-                end_idx = response_text.rfind(']') + 1
+                start_idx = response_text.find("[")
+                end_idx = response_text.rfind("]") + 1
                 json_str = response_text[start_idx:end_idx]
                 recommendations = json.loads(json_str)
 
@@ -373,8 +373,8 @@ Format as JSON array:
 
     async def _apply_strategy_adjustments(
         self,
-        recommendations: List[Dict]
-    ) -> List[Dict]:
+        recommendations: list[dict]
+    ) -> list[dict]:
         """
         Apply high-confidence strategy adjustments.
 
@@ -417,7 +417,7 @@ Format as JSON array:
 
         return applied
 
-    async def _apply_adjustment(self, recommendation: Dict) -> bool:
+    async def _apply_adjustment(self, recommendation: dict) -> bool:
         """
         Apply a specific adjustment.
 
@@ -443,7 +443,7 @@ Format as JSON array:
 
         return True
 
-    async def get_tuning_history(self, days: int = 30) -> Dict:
+    async def get_tuning_history(self, days: int = 30) -> dict:
         """
         Get history of tuning adjustments.
 

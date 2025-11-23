@@ -1,18 +1,29 @@
 """Unit tests for database models and connections."""
 
-import pytest
 from datetime import datetime
+
+import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from src.database.models import (
-    Base, MarketData, Insight, InsightType, ContentPlan,
-    ContentFormat, PublishedContent, ABTest, ABTestVariant,
-    TestStatus, PerformanceSnapshot, CommunityUser, UserTier
+    ABTest,
+    ABTestVariant,
+    Base,
+    CommunityUser,
+    ContentFormat,
+    ContentPlan,
+    Insight,
+    InsightType,
+    MarketData,
+    PerformanceSnapshot,
+    PublishedContent,
+    TestStatus,
+    UserTier,
 )
 
 
-@pytest.fixture
+@pytest.fixture()
 def in_memory_db():
     """Create an in-memory SQLite database for testing."""
     engine = create_engine("sqlite:///:memory:")
@@ -255,10 +266,10 @@ def test_all_models_have_required_fields():
 
     for model in models:
         # Check that model has an id field
-        assert hasattr(model, 'id')
+        assert hasattr(model, "id")
 
         # Check that model has __tablename__
-        assert hasattr(model, '__tablename__')
+        assert hasattr(model, "__tablename__")
 
 
 if __name__ == "__main__":

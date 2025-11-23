@@ -1,7 +1,8 @@
 """Twitter/X API integration."""
 
+from typing import Optional
+
 import tweepy
-from typing import List, Dict, Optional
 from loguru import logger
 
 
@@ -44,7 +45,7 @@ class TwitterAPI:
 
         logger.info("Twitter API initialized")
 
-    def post_tweet(self, text: str) -> Optional[Dict]:
+    def post_tweet(self, text: str) -> Optional[dict]:
         """
         Post a single tweet.
 
@@ -66,7 +67,7 @@ class TwitterAPI:
             logger.error(f"Failed to post tweet: {e}")
             return None
 
-    def post_thread(self, tweets: List[str]) -> Optional[List[Dict]]:
+    def post_thread(self, tweets: list[str]) -> Optional[list[dict]]:
         """
         Post a thread of tweets.
 
@@ -106,7 +107,7 @@ class TwitterAPI:
             logger.error(f"Failed to post thread: {e}")
             return None
 
-    def search_tweets(self, query: str, max_results: int = 100) -> List[Dict]:
+    def search_tweets(self, query: str, max_results: int = 100) -> list[dict]:
         """
         Search for tweets matching a query.
 
@@ -143,7 +144,7 @@ class TwitterAPI:
             logger.error(f"Failed to search tweets: {e}")
             return []
 
-    def get_sentiment_for_asset(self, asset: str, max_results: int = 100) -> Dict:
+    def get_sentiment_for_asset(self, asset: str, max_results: int = 100) -> dict:
         """
         Get sentiment data for a specific cryptocurrency.
 

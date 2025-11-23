@@ -1,18 +1,18 @@
 """Database connection and session management."""
 
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, Session
-from contextlib import contextmanager
-from typing import Generator
-import sys
 import os
+import sys
+from collections.abc import Generator
+from contextlib import contextmanager
+
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session, sessionmaker
 
 # Add parent directory to path for imports
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
 from config.config import settings
 from src.database.models import Base
-
 
 # Create engine
 engine = create_engine(

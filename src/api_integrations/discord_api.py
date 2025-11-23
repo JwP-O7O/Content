@@ -1,8 +1,9 @@
 """Discord API integration for private community management."""
 
+from typing import Optional
+
 import discord
 from discord.ext import commands
-from typing import Dict, List, Optional
 from loguru import logger
 
 
@@ -27,7 +28,7 @@ class DiscordAPI:
         intents.message_content = True
         intents.members = True
 
-        self.bot = commands.Bot(command_prefix='!', intents=intents)
+        self.bot = commands.Bot(command_prefix="!", intents=intents)
 
         # Setup event handlers
         self._setup_handlers()
@@ -71,7 +72,7 @@ class DiscordAPI:
         channel_id: str,
         content: str,
         embed: Optional[discord.Embed] = None
-    ) -> Optional[Dict]:
+    ) -> Optional[dict]:
         """
         Send a message to a Discord channel.
 
@@ -176,7 +177,7 @@ class DiscordAPI:
             role = guild.get_role(int(role_id))
 
             if not member or not role:
-                logger.error(f"Member or role not found")
+                logger.error("Member or role not found")
                 return False
 
             await member.add_roles(role)
@@ -319,7 +320,7 @@ class DiscordAPI:
         self,
         channel_id: str,
         limit: int = 100
-    ) -> List[Dict]:
+    ) -> list[dict]:
         """
         Get recent messages from a channel.
 

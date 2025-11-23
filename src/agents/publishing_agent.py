@@ -1,15 +1,14 @@
 """PublishingAgent - Publishes content to various platforms."""
 
-import asyncio
-from typing import Dict, List, Optional
 from datetime import datetime
+from typing import Optional
 
-from src.agents.base_agent import BaseAgent
-from src.database.connection import get_db
-from src.database.models import ContentPlan, PublishedContent, ContentFormat
-from src.api_integrations.twitter_api import TwitterAPI
-from src.api_integrations.telegram_api import TelegramAPI
 from config.config import settings
+from src.agents.base_agent import BaseAgent
+from src.api_integrations.telegram_api import TelegramAPI
+from src.api_integrations.twitter_api import TwitterAPI
+from src.database.connection import get_db
+from src.database.models import ContentFormat, ContentPlan, PublishedContent
 
 
 class PublishingAgent(BaseAgent):
@@ -51,7 +50,7 @@ class PublishingAgent(BaseAgent):
 
         self.human_in_the_loop = settings.human_in_the_loop
 
-    async def execute(self) -> Dict:
+    async def execute(self) -> dict:
         """
         Execute the publishing process.
 
@@ -112,7 +111,7 @@ class PublishingAgent(BaseAgent):
 
         return results
 
-    async def _get_ready_plans(self) -> List[ContentPlan]:
+    async def _get_ready_plans(self) -> list[ContentPlan]:
         """
         Get content plans that are ready to publish.
 
@@ -262,7 +261,7 @@ class PublishingAgent(BaseAgent):
 
         return template
 
-    def _get_thread_tweets(self, plan: ContentPlan) -> List[str]:
+    def _get_thread_tweets(self, plan: ContentPlan) -> list[str]:
         """
         Get thread tweets for a plan.
 
@@ -363,7 +362,7 @@ class PublishingAgent(BaseAgent):
                 db.commit()
                 self.log_info(f"Content plan {plan_id} rejected")
 
-    async def get_pending_approvals(self) -> List[Dict]:
+    async def get_pending_approvals(self) -> list[dict]:
         """
         Get all content plans awaiting approval.
 

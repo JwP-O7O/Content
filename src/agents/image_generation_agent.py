@@ -1,15 +1,11 @@
 """ImageGenerationAgent - Generates visual content for posts."""
 
-import asyncio
-import aiohttp
-from typing import Dict, Optional
-from datetime import datetime
 import json
+from typing import Optional
 
 from src.agents.base_agent import BaseAgent
 from src.database.connection import get_db
-from src.database.models import Insight, ContentPlan
-from config.config import settings
+from src.database.models import Insight
 
 
 class ImageGenerationAgent(BaseAgent):
@@ -35,7 +31,7 @@ class ImageGenerationAgent(BaseAgent):
         import os
         os.makedirs(self.output_dir, exist_ok=True)
 
-    async def execute(self) -> Dict:
+    async def execute(self) -> dict:
         """
         Execute image generation for insights that need visuals.
 
@@ -180,7 +176,7 @@ class ImageGenerationAgent(BaseAgent):
             self.log_error(f"Error generating price chart: {e}")
             return None
 
-    async def _create_chart(self, config: Dict) -> str:
+    async def _create_chart(self, config: dict) -> str:
         """
         Create a chart using QuickChart API.
 

@@ -1,17 +1,13 @@
 """ExclusiveContentAgent - Publishes exclusive content for paying members."""
 
-from typing import Dict, List
 from datetime import datetime, timedelta
 
+from config.config import settings
 from src.agents.base_agent import BaseAgent
-from src.database.connection import get_db
-from src.database.models import (
-    Insight, ExclusiveContent, UserTier,
-    ContentFormat
-)
 from src.api_integrations.discord_api import DiscordAPI
 from src.api_integrations.telegram_api import TelegramAPI
-from config.config import settings
+from src.database.connection import get_db
+from src.database.models import ExclusiveContent, Insight, UserTier
 
 
 class ExclusiveContentAgent(BaseAgent):
@@ -73,7 +69,7 @@ class ExclusiveContentAgent(BaseAgent):
             }
         }
 
-    async def execute(self) -> Dict:
+    async def execute(self) -> dict:
         """
         Execute exclusive content publishing.
 
@@ -134,7 +130,7 @@ class ExclusiveContentAgent(BaseAgent):
 
         return results
 
-    async def _get_exclusive_insights(self) -> List[Insight]:
+    async def _get_exclusive_insights(self) -> list[Insight]:
         """
         Get insights that should be published as exclusive content.
 
@@ -349,7 +345,7 @@ class ExclusiveContentAgent(BaseAgent):
 
             self.log_info(f"Exclusive content saved to database (ID: {exclusive.id})")
 
-    async def get_exclusive_content_stats(self, days: int = 7) -> Dict:
+    async def get_exclusive_content_stats(self, days: int = 7) -> dict:
         """
         Get statistics about exclusive content performance.
 
