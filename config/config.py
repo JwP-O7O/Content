@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     # LLM API Keys
     anthropic_api_key: str
     google_api_key: Optional[str] = None
+    google_api_key_backup: Optional[str] = None  # Backup Gemini key for failover
     openai_api_key: Optional[str] = None
 
     # Social Media
