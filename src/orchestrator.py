@@ -125,7 +125,8 @@ class AgentOrchestrator:
             logger.info("Pipeline Complete!")
             logger.info("="*50)
             logger.info(f"Market Data: {scan_results.get('market_data_collected', 0)} points")
-            logger.info(f"Insights: {analysis_results.get('insights_generated', 0)} generated")
+            if self.analysis_agent:
+                logger.info(f"Insights: {analysis_results.get('insights_generated', 0)} generated")
             logger.info(f"Content Plans: {strategy_results.get('content_plans_created', 0)} created")
             logger.info(f"Content Created: {creation_results.get('content_created', 0)} pieces")
             logger.info(f"Content Published: {publishing_results.get('content_published', 0)} pieces")
