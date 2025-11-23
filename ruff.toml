@@ -62,7 +62,7 @@ exclude = [
 ]
 
 [lint.per-file-ignores]
-# Tests can use assert statements and magic values
+# Tests can use assert statements (S101) and magic values (PLR2004)
 "tests/**/*.py" = ["PLR2004", "S101"]
 # Allow star imports in __init__.py
 "__init__.py" = ["F401", "F403"]

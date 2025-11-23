@@ -79,10 +79,9 @@ def mock_environment_variables() -> None:
     """Fixture to manage test environment variables.
 
     Environment is already set at module level, this just ensures cleanup.
+    Note: We don't restore the original environment as tests should be isolated.
     """
-    return
-
-    # Note: We don't restore the original environment as tests should be isolated
+    yield
 
 
 @pytest.fixture()
