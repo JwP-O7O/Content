@@ -119,7 +119,7 @@ class SystemVerifier:
             from src.database.connection import engine
 
             # Try to connect
-            with engine.connect() as conn:
+            with engine.connect():
                 self._success("Database connection successful")
 
         except Exception as e:

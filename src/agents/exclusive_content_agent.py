@@ -142,8 +142,8 @@ class ExclusiveContentAgent(BaseAgent):
             cutoff = datetime.utcnow() - timedelta(hours=24)
 
             insights = db.query(Insight).filter(
-                Insight.is_published == False,  # Not yet published publicly
-                Insight.is_exclusive == False,  # Not yet marked as exclusive
+                Insight.is_published.is_(False),  # Not yet published publicly
+                Insight.is_exclusive.is_(False),  # Not yet marked as exclusive
                 Insight.confidence >= self.tier_thresholds[UserTier.BASIC],
                 Insight.timestamp >= cutoff
             ).order_by(
@@ -316,8 +316,8 @@ class ExclusiveContentAgent(BaseAgent):
         tier: UserTier,
         content_text: str,
         platform: str,
-        channel_id: str = None,
-        message_id: str = None
+        channel_id: Optional[str] = None,
+        message_id: Optional[str] = None
     ):
         """
         Save exclusive content to database for tracking.

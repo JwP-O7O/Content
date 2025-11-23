@@ -416,7 +416,7 @@ Provide a single-sentence insight explaining why the winning variant likely perf
             insights = db.query(Insight).filter(
                 Insight.timestamp >= cutoff,
                 Insight.confidence >= 0.85,
-                Insight.is_published == False
+                Insight.is_published.is_(False)
             ).limit(3).all()
 
             created_count = 0

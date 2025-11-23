@@ -238,11 +238,9 @@ class EngagementAgent(BaseAgent):
 
         results = {"users_tracked": 0}
 
-        with get_db() as db:
-            for content in recent_content:
-                # In practice, fetch actual metrics from Twitter API
-                # For now, we'll note that this would update:
-                # - content.views
+        # Note: In practice, fetch actual metrics from Twitter API
+        # This would update content.views, content.likes, etc.
+        for content in recent_content:
                 # - content.likes
                 # - content.comments
                 # - content.shares
@@ -369,10 +367,8 @@ Reply:"""
             self.engaged_users[user_id]["interaction_count"] += 1
             self.engaged_users[user_id]["last_interaction"] = datetime.utcnow()
 
-        # Save to database for later use by ConversionAgent (Fase 3)
-        with get_db() as db:
-            # Would save to an engaged_users table
-            pass
+        # Note: Would save to an engaged_users table for later use by ConversionAgent (Fase 3)
+        # Database implementation pending
 
     async def get_highly_engaged_users(
         self,
@@ -424,7 +420,7 @@ Reply:"""
 
         try:
             # Create reply
-            response = self.twitter_api.client.create_tweet(
+            _ = self.twitter_api.client.create_tweet(
                 text=reply_text,
                 in_reply_to_tweet_id=tweet_id
             )

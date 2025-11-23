@@ -152,7 +152,7 @@ class ContentStrategistAgent(BaseAgent):
             cutoff_time = datetime.utcnow() - timedelta(hours=24)
 
             insights = db.query(Insight).filter(
-                Insight.is_published == False,
+                Insight.is_published.is_(False),
                 Insight.timestamp >= cutoff_time
             ).order_by(
                 Insight.confidence.desc()

@@ -199,7 +199,7 @@ class ConversionAgent(BaseAgent):
                 CommunityUser.engagement_score >= self.min_engagement_score,
                 CommunityUser.subscription_status == "inactive",
                 # Either never DMed or DMed long ago
-                (CommunityUser.conversion_dm_sent == False) |
+                (CommunityUser.conversion_dm_sent.is_(False)) |
                 (CommunityUser.conversion_dm_sent_at < cooldown_cutoff)
             ).order_by(
                 CommunityUser.engagement_score.desc()
