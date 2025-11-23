@@ -161,19 +161,18 @@ class ABTestingAgent(BaseAgent):
 
                 # Check for stale tests (running too long)
                 test_age = datetime.now(tz=timezone.utc) - test.started_at
-                if test_age.days > self.test_duration_days:
+                if test_age.days > self.test_duration_days and not winner:
                     # No clear winner after max duration
-                    if not winner:
-                        test.status = TestStatus.COMPLETED
-                        test.completed_at = datetime.now(tz=timezone.utc)
-                        db.commit()
+                    test.status = TestStatus.COMPLETED
+                    test.completed_at = datetime.now(tz=timezone.utc)
+                    db.commit()
 
-                        completed_count += 1
+                    completed_count += 1
 
-                        self.log_info(
-                            f"Test '{test.test_name}' completed without clear winner "
-                            f"(duration exceeded {self.test_duration_days} days)"
-                        )
+                    self.log_info(
+                        f"Test '{test.test_name}' completed without clear winner "
+                        f"(duration exceeded {self.test_duration_days} days)"
+                    )
 
             return {
                 "analyzed_count": analyzed_count,

@@ -371,11 +371,10 @@ If no violation:
                 await self.discord_api.delete_message(channel_id, message_id)
                 action = "deleted"
 
-        elif violation_type == "offensive" and confidence >= 0.8:
+        elif violation_type == "offensive" and confidence >= 0.8 and platform == "discord" and self.discord_api:
             # Offensive content - delete and warn
-            if platform == "discord" and self.discord_api:
-                await self.discord_api.delete_message(channel_id, message_id)
-                action = "warned"
+            await self.discord_api.delete_message(channel_id, message_id)
+            action = "warned"
 
         # Log the moderation action
         await self._log_moderation_action(

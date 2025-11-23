@@ -181,14 +181,12 @@ class EngagementAgent(BaseAgent):
                 # For now, we'll simulate
                 self.log_info(f"Processing replies to post {content.post_id}")
 
-                # Would fetch actual replies here
-                # replies = self.twitter_api.get_tweet_replies(content.post_id)
-
-                # For each reply:
-                # 1. Analyze sentiment
-                # 2. Like if positive
-                # 3. Reply if it's a question
-                # 4. Track engaged users
+                # TODO: Implement actual reply fetching and processing:
+                # 1. Fetch replies from Twitter API
+                # 2. Analyze sentiment
+                # 3. Like if positive
+                # 4. Reply if it's a question
+                # 5. Track engaged users
 
         except Exception as e:
             self.log_error(f"Error engaging with replies: {e}")
