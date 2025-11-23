@@ -90,11 +90,10 @@ class NewsAPI:
         all_news = await self.fetch_latest_news(max_articles=50)
         cutoff_date = datetime.now(tz=timezone.utc) - timedelta(days=days_back)
 
-        matching_articles = [
+        return [
             article for article in all_news
             if keyword.lower() in article["title"].lower()
-            or keyword.lower() in article["summary"].lower()
-            and article["published_at"] >= cutoff_date
+            or (keyword.lower() in article["summary"].lower()
+            and article["published_at"] >= cutoff_date)
         ]
 
-        return matching_articles

@@ -122,12 +122,11 @@ class PublishingAgent(BaseAgent):
             # Get plans that are ready and scheduled for now or earlier
             now = datetime.now(tz=timezone.utc)
 
-            plans = db.query(ContentPlan).filter(
+            return db.query(ContentPlan).filter(
                 ContentPlan.status == "ready",
                 ContentPlan.scheduled_for <= now
             ).limit(10).all()
 
-            return plans
 
     def _mark_awaiting_approval(self, plan: ContentPlan):
         """Mark a content plan as awaiting approval."""
@@ -163,11 +162,10 @@ class PublishingAgent(BaseAgent):
         # Publish based on platform
         if plan.platform == "twitter":
             return await self._publish_to_twitter(plan)
-        elif "telegram" in plan.platform:
+        if "telegram" in plan.platform:
             return await self._publish_to_telegram(plan)
-        else:
-            self.log_warning(f"Unknown platform: {plan.platform}")
-            return False
+        self.log_warning(f"Unknown platform: {plan.platform}")
+        return False
 
     async def _publish_to_twitter(self, plan: ContentPlan) -> bool:
         """Publish content to Twitter."""
@@ -251,7 +249,7 @@ class PublishingAgent(BaseAgent):
         insight = plan.insight
 
         # Simple template
-        template = (
+        return (
             f"${insight.asset} Alert\n\n"
             f"Detected: {insight.type.value}\n"
             f"Confidence: {insight.confidence:.0%}\n\n"
@@ -259,7 +257,6 @@ class PublishingAgent(BaseAgent):
             f"#crypto #{insight.asset}"
         )
 
-        return template
 
     def _get_thread_tweets(self, plan: ContentPlan) -> list[str]:
         """
@@ -269,7 +266,7 @@ class PublishingAgent(BaseAgent):
         """
         insight = plan.insight
 
-        tweets = [
+        return [
             f"${insight.asset} {insight.type.value.upper()} detected "
             f"(confidence: {insight.confidence:.0%}) 🚨",
 
@@ -283,7 +280,6 @@ class PublishingAgent(BaseAgent):
             f"Always DYOR! #crypto #{insight.asset}"
         ]
 
-        return tweets
 
     def _save_published_content(
         self,

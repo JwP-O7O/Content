@@ -81,13 +81,12 @@ class MarketScannerAgent(BaseAgent):
         for i, result in enumerate(scan_results):
             if isinstance(result, Exception):
                 results["errors"].append(str(result))
-            else:
-                if i == 0:  # Market data
-                    results["market_data_collected"] = result
-                elif i == 1:  # News
-                    results["news_articles_collected"] = result
-                elif i == 2:  # Sentiment
-                    results["sentiment_data_collected"] = result
+            elif i == 0:  # Market data
+                results["market_data_collected"] = result
+            elif i == 1:  # News
+                results["news_articles_collected"] = result
+            elif i == 2:  # Sentiment
+                results["sentiment_data_collected"] = result
 
         self.log_info(
             f"Market scan complete: "

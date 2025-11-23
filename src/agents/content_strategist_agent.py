@@ -151,14 +151,13 @@ class ContentStrategistAgent(BaseAgent):
             # Get insights from the last 24 hours that aren't published
             cutoff_time = datetime.now(tz=timezone.utc) - timedelta(hours=24)
 
-            insights = db.query(Insight).filter(
+            return db.query(Insight).filter(
                 Insight.is_published.is_(False),
                 Insight.timestamp >= cutoff_time
             ).order_by(
                 Insight.confidence.desc()
             ).all()
 
-            return insights
 
     async def _get_todays_content_plans(self) -> list[ContentPlan]:
         """
@@ -170,11 +169,10 @@ class ContentStrategistAgent(BaseAgent):
         with get_db() as db:
             today_start = datetime.now(tz=timezone.utc).replace(hour=0, minute=0, second=0)
 
-            plans = db.query(ContentPlan).filter(
+            return db.query(ContentPlan).filter(
                 ContentPlan.timestamp >= today_start
             ).all()
 
-            return plans
 
     def _create_content_plan(
         self,
@@ -197,12 +195,11 @@ class ContentStrategistAgent(BaseAgent):
         # Determine platform
         if is_exclusive:
             platform = "telegram_exclusive"  # Private Telegram channel
+        # Public platforms - prefer Twitter for high confidence
+        elif content_format == ContentFormat.THREAD or insight.confidence >= 0.75:
+            platform = "twitter"
         else:
-            # Public platforms - prefer Twitter for high confidence
-            if content_format == ContentFormat.THREAD or insight.confidence >= 0.75:
-                platform = "twitter"
-            else:
-                platform = "telegram_public"
+            platform = "telegram_public"
 
         # Determine priority
         if insight.confidence >= 0.9:
@@ -251,8 +248,7 @@ class ContentStrategistAgent(BaseAgent):
         # Determine confidence level
         if insight.confidence >= 0.8:
             return rules.get("high_confidence", ContentFormat.THREAD)
-        else:
-            return rules.get("medium_confidence", ContentFormat.SINGLE_TWEET)
+        return rules.get("medium_confidence", ContentFormat.SINGLE_TWEET)
 
     def _get_next_optimal_time(self) -> datetime:
         """
@@ -267,17 +263,15 @@ class ContentStrategistAgent(BaseAgent):
         # Find next optimal time
         for hour in self.optimal_times:
             if hour > current_hour:
-                next_time = now.replace(hour=hour, minute=0, second=0)
-                return next_time
+                return now.replace(hour=hour, minute=0, second=0)
 
         # If no time found today, use first time tomorrow
         tomorrow = now + timedelta(days=1)
-        next_time = tomorrow.replace(
+        return tomorrow.replace(
             hour=self.optimal_times[0],
             minute=0,
             second=0
         )
-        return next_time
 
     async def optimize_strategy(self) -> dict:
         """

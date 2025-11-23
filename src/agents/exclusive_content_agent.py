@@ -141,7 +141,7 @@ class ExclusiveContentAgent(BaseAgent):
             # Get high-confidence insights from last 24 hours
             cutoff = datetime.now(tz=timezone.utc) - timedelta(hours=24)
 
-            insights = db.query(Insight).filter(
+            return db.query(Insight).filter(
                 Insight.is_published.is_(False),  # Not yet published publicly
                 Insight.is_exclusive.is_(False),  # Not yet marked as exclusive
                 Insight.confidence >= self.tier_thresholds[UserTier.BASIC],
@@ -150,7 +150,6 @@ class ExclusiveContentAgent(BaseAgent):
                 Insight.confidence.desc()
             ).all()
 
-            return insights
 
     def _determine_tier_for_insight(self, insight: Insight) -> UserTier:
         """
@@ -167,11 +166,11 @@ class ExclusiveContentAgent(BaseAgent):
             return UserTier.VIP
 
         # Premium gets high-confidence
-        elif insight.confidence >= self.tier_thresholds[UserTier.PREMIUM]:
+        if insight.confidence >= self.tier_thresholds[UserTier.PREMIUM]:
             return UserTier.PREMIUM
 
         # Basic gets good insights
-        elif insight.confidence >= self.tier_thresholds[UserTier.BASIC]:
+        if insight.confidence >= self.tier_thresholds[UserTier.BASIC]:
             return UserTier.BASIC
 
         return None

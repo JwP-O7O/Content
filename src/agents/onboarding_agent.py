@@ -118,7 +118,7 @@ class OnboardingAgent(BaseAgent):
         cutoff = datetime.now(tz=timezone.utc) - timedelta(hours=24)
 
         with get_db() as db:
-            new_members = db.query(CommunityUser).join(Subscription).filter(
+            return db.query(CommunityUser).join(Subscription).filter(
                 CommunityUser.tier != UserTier.FREE,
                 CommunityUser.converted_at >= cutoff,
                 CommunityUser.subscription_status == "active"
@@ -127,7 +127,6 @@ class OnboardingAgent(BaseAgent):
             # Filter out members who were already onboarded
             # (would track this with an 'onboarded_at' field in production)
 
-            return new_members
 
     async def _onboard_member(self, member: CommunityUser) -> bool:
         """

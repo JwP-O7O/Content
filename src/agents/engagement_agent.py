@@ -95,17 +95,16 @@ class EngagementAgent(BaseAgent):
             for i, result in enumerate(task_results):
                 if isinstance(result, Exception):
                     results["errors"].append(str(result))
-                else:
-                    if i == 0:  # Mentions
-                        results["mentions_processed"] = result.get("mentions", 0)
-                        results["replies_sent"] += result.get("replies", 0)
-                    elif i == 1:  # Replies
-                        results["likes_given"] = result.get("likes", 0)
-                        results["replies_sent"] += result.get("replies", 0)
-                    elif i == 2:  # Retweets
-                        results["retweets"] = result.get("retweets", 0)
-                    elif i == 3:  # Metrics
-                        results["engaged_users_tracked"] = result.get("users_tracked", 0)
+                elif i == 0:  # Mentions
+                    results["mentions_processed"] = result.get("mentions", 0)
+                    results["replies_sent"] += result.get("replies", 0)
+                elif i == 1:  # Replies
+                    results["likes_given"] = result.get("likes", 0)
+                    results["replies_sent"] += result.get("replies", 0)
+                elif i == 2:  # Retweets
+                    results["retweets"] = result.get("retweets", 0)
+                elif i == 3:  # Metrics
+                    results["engaged_users_tracked"] = result.get("users_tracked", 0)
 
             self.log_info(
                 f"Engagement complete: {results['replies_sent']} replies, "
@@ -123,12 +122,11 @@ class EngagementAgent(BaseAgent):
         cutoff_time = datetime.now(tz=timezone.utc) - timedelta(hours=24)
 
         with get_db() as db:
-            content = db.query(PublishedContent).filter(
+            return db.query(PublishedContent).filter(
                 PublishedContent.platform == "twitter",
                 PublishedContent.published_at >= cutoff_time
             ).all()
 
-            return content
 
     async def _monitor_and_respond_to_mentions(self) -> dict:
         """Monitor mentions and respond to them."""

@@ -285,11 +285,10 @@ class StripeAPI:
             Event object or None
         """
         try:
-            event = stripe.Webhook.construct_event(
+            return stripe.Webhook.construct_event(
                 payload, sig_header, webhook_secret
             )
 
-            return event
 
         except Exception as e:
             logger.error(f"Webhook error: {e}")

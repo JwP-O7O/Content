@@ -476,9 +476,8 @@ async def main():
     orchestrator = AgentOrchestrator()
 
     # Run the full pipeline
-    results = await orchestrator.run_full_pipeline()
+    return await orchestrator.run_full_pipeline()
 
-    return results
 
 
 if __name__ == "__main__":

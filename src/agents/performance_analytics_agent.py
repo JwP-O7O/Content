@@ -346,10 +346,7 @@ class PerformanceAnalyticsAgent(BaseAgent):
         slope = numerator / denominator
 
         # Calculate change percentage
-        if values[0] != 0:
-            change_pct = ((values[-1] - values[0]) / abs(values[0])) * 100
-        else:
-            change_pct = 0
+        change_pct = (values[-1] - values[0]) / abs(values[0]) * 100 if values[0] != 0 else 0
 
         # Determine direction and significance
         if abs(change_pct) < 5:
@@ -582,9 +579,8 @@ Generate a 3-paragraph executive summary covering:
                     messages=[{"role": "user", "content": prompt}]
                 )
 
-                summary = message.content[0].text.strip()
+                return message.content[0].text.strip()
 
-                return summary
 
             except Exception as e:
                 self.log_error(f"Error generating executive summary: {e}")

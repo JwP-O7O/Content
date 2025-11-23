@@ -171,25 +171,23 @@ class AnalysisAgent(BaseAgent):
             ).all()
 
             # Filter for articles mentioning the asset
-            relevant_news = [
+            return [
                 n for n in news
                 if asset.lower() in n.title.lower()
                 or asset.lower() in n.summary.lower()
             ]
 
-            return relevant_news
 
     async def _get_sentiment_data(self, asset: str) -> list[SentimentData]:
         """Get recent sentiment data for the asset."""
         cutoff_time = datetime.now(tz=timezone.utc) - timedelta(hours=self.lookback_hours)
 
         with get_db() as db:
-            sentiment = db.query(SentimentData).filter(
+            return db.query(SentimentData).filter(
                 SentimentData.asset == asset,
                 SentimentData.timestamp >= cutoff_time
             ).all()
 
-            return sentiment
 
     async def _technical_analysis(
         self,

@@ -23,7 +23,7 @@ from src.database.models import (
 )
 
 
-@pytest.fixture()
+@pytest.fixture
 def in_memory_db():
     """Create an in-memory SQLite database for testing."""
     engine = create_engine("sqlite:///:memory:")

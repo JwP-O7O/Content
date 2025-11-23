@@ -54,9 +54,8 @@ class ExchangeAPI:
                             "timestamp": datetime.now(tz=timezone.utc),
                             "raw_data": data
                         }
-                    else:
-                        logger.error(f"Failed to fetch ticker for {symbol}: {response.status}")
-                        return None
+                    logger.error(f"Failed to fetch ticker for {symbol}: {response.status}")
+                    return None
         except Exception as e:
             logger.error(f"Error fetching ticker data: {e}")
             return None
@@ -118,9 +117,8 @@ class ExchangeAPI:
                             "losers": losers,
                             "timestamp": datetime.now(tz=timezone.utc)
                         }
-                    else:
-                        logger.error(f"Failed to fetch all tickers: {response.status}")
-                        return {"gainers": [], "losers": []}
+                    logger.error(f"Failed to fetch all tickers: {response.status}")
+                    return {"gainers": [], "losers": []}
         except Exception as e:
             logger.error(f"Error fetching gainers/losers: {e}")
             return {"gainers": [], "losers": []}
@@ -165,9 +163,8 @@ class ExchangeAPI:
                             }
                             for k in klines
                         ]
-                    else:
-                        logger.error(f"Failed to fetch klines: {response.status}")
-                        return []
+                    logger.error(f"Failed to fetch klines: {response.status}")
+                    return []
         except Exception as e:
             logger.error(f"Error fetching klines: {e}")
             return []

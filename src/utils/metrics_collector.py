@@ -105,10 +105,9 @@ class MetricsCollector:
         """
         if content.platform == "twitter":
             return await self._collect_twitter_metrics(content)
-        elif "telegram" in content.platform:
+        if "telegram" in content.platform:
             return await self._collect_telegram_metrics(content)
-        else:
-            return None
+        return None
 
     async def _collect_twitter_metrics(
         self,

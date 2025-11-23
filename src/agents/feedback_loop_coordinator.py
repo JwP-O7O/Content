@@ -227,10 +227,7 @@ Respond with JSON:
             return False
 
         # Only apply if component is in safe list
-        if component not in safe_components:
-            return False
-
-        return True
+        return component in safe_components
 
     async def _apply_coordinated_action(self, action: dict) -> bool:
         """
@@ -365,9 +362,8 @@ Format as markdown."""
                 messages=[{"role": "user", "content": prompt}]
             )
 
-            report = message.content[0].text.strip()
+            return message.content[0].text.strip()
 
-            return report
 
         except Exception as e:
             self.log_error(f"Error generating learning report: {e}")
@@ -449,7 +445,7 @@ Format as markdown."""
 
             overall_score = sum(
                 components[k] * weights[k]
-                for k in components.keys()
+                for k in components
             )
 
             # Determine status

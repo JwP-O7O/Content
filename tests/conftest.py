@@ -81,10 +81,10 @@ def mock_environment_variables() -> None:
     Environment is already set at module level, this just ensures cleanup.
     Note: We don't restore the original environment as tests should be isolated.
     """
-    yield
+    return
 
 
-@pytest.fixture()
+@pytest.fixture
 def mock_db_session():
     """Mock database session for tests that need database access."""
     session = Mock()
@@ -96,7 +96,7 @@ def mock_db_session():
     return session
 
 
-@pytest.fixture()
+@pytest.fixture
 def mock_anthropic_client():
     """Mock Anthropic API client."""
     with patch("anthropic.Anthropic") as mock:

@@ -359,9 +359,8 @@ Format as JSON array:
                 start_idx = response_text.find("[")
                 end_idx = response_text.rfind("]") + 1
                 json_str = response_text[start_idx:end_idx]
-                recommendations = json.loads(json_str)
+                return json.loads(json_str)
 
-                return recommendations
 
             except json.JSONDecodeError as e:
                 self.log_error(f"Failed to parse AI recommendations: {e}")

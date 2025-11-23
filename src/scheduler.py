@@ -377,15 +377,14 @@ class ContentCreatorScheduler:
 
         if job_id == "full_pipeline":
             return await self.orchestrator.run_full_pipeline()
-        elif job_id == "market_scan":
+        if job_id == "market_scan":
             return await self.orchestrator.run_market_scan_only()
-        elif job_id == "analysis":
+        if job_id == "analysis":
             return await self.orchestrator.run_analysis_only()
-        elif job_id == "content_creation":
+        if job_id == "content_creation":
             return await self.orchestrator.run_content_creation_pipeline()
-        else:
-            logger.error(f"Unknown job ID: {job_id}")
-            return None
+        logger.error(f"Unknown job ID: {job_id}")
+        return None
 
 
 async def main():

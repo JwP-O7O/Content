@@ -124,11 +124,10 @@ class ContentCreationAgent(BaseAgent):
             List of pending content plans
         """
         with get_db() as db:
-            plans = db.query(ContentPlan).filter(
+            return db.query(ContentPlan).filter(
                 ContentPlan.status == "pending"
             ).limit(10).all()  # Process 10 at a time
 
-            return plans
 
     async def _generate_content(self, plan: ContentPlan) -> dict:
         """
@@ -145,14 +144,13 @@ class ContentCreationAgent(BaseAgent):
         # Choose generation method based on format
         if plan.format == ContentFormat.SINGLE_TWEET:
             return await self._generate_tweet(insight, plan)
-        elif plan.format == ContentFormat.THREAD:
+        if plan.format == ContentFormat.THREAD:
             return await self._generate_thread(insight, plan)
-        elif plan.format == ContentFormat.TELEGRAM_MESSAGE:
+        if plan.format == ContentFormat.TELEGRAM_MESSAGE:
             return await self._generate_telegram_message(insight, plan)
-        elif plan.format == ContentFormat.BLOG_POST:
+        if plan.format == ContentFormat.BLOG_POST:
             return await self._generate_blog_post(insight, plan)
-        else:
-            return await self._generate_tweet(insight, plan)
+        return await self._generate_tweet(insight, plan)
 
     async def _generate_tweet(self, insight, plan: ContentPlan) -> dict:
         """Generate a single tweet."""

@@ -338,12 +338,11 @@ class ABTestingAgent(BaseAgent):
         # z=1.96 ≈ 95% confidence, z=2.58 ≈ 99% confidence
         if z >= 2.58:
             return 0.99
-        elif z >= 1.96:
+        if z >= 1.96:
             return 0.95
-        elif z >= 1.645:
+        if z >= 1.645:
             return 0.90
-        else:
-            return min(0.85, z / 1.96 * 0.95)
+        return min(0.85, z / 1.96 * 0.95)
 
     async def _generate_test_insight(
         self,
@@ -549,9 +548,8 @@ Be creative and data-driven in your variations."""
             start_idx = response_text.find("[")
             end_idx = response_text.rfind("]") + 1
             json_str = response_text[start_idx:end_idx]
-            variants = json.loads(json_str)
+            return json.loads(json_str)
 
-            return variants
 
         except Exception as e:
             self.log_error(f"Error generating variants: {e}")

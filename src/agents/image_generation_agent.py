@@ -81,12 +81,11 @@ class ImageGenerationAgent(BaseAgent):
         """Get insights that would benefit from images."""
         with get_db() as db:
             # Get recent high-confidence insights that don't have images yet
-            insights = db.query(Insight).filter(
+            return db.query(Insight).filter(
                 Insight.confidence >= 0.75,
                 Insight.is_published.is_(False)
             ).limit(5).all()
 
-            return insights
 
     async def _generate_image_for_insight(self, insight: Insight) -> Optional[str]:
         """
@@ -103,12 +102,11 @@ class ImageGenerationAgent(BaseAgent):
         # Different image types based on insight type
         if insight_type in ["breakout", "breakdown", "volume_spike"]:
             return await self._generate_price_chart(insight)
-        elif insight_type == "sentiment_shift":
+        if insight_type == "sentiment_shift":
             return await self._generate_sentiment_visualization(insight)
-        elif insight_type == "news_impact":
+        if insight_type == "news_impact":
             return await self._generate_news_infographic(insight)
-        else:
-            return await self._generate_generic_crypto_image(insight)
+        return await self._generate_generic_crypto_image(insight)
 
     async def _generate_price_chart(self, insight: Insight) -> Optional[str]:
         """
@@ -168,9 +166,8 @@ class ImageGenerationAgent(BaseAgent):
             }
 
             # Generate chart URL
-            chart_url = await self._create_chart(chart_config)
+            return await self._create_chart(chart_config)
 
-            return chart_url
 
         except Exception as e:
             self.log_error(f"Error generating price chart: {e}")
@@ -191,12 +188,11 @@ class ImageGenerationAgent(BaseAgent):
             config_json = json.dumps(config)
 
             # Create QuickChart URL
-            chart_url = f"{self.chart_api_base}?c={config_json}"
+            return f"{self.chart_api_base}?c={config_json}"
 
             # In practice, you might want to download and save locally
             # For now, return the URL
 
-            return chart_url
 
         except Exception as e:
             self.log_error(f"Error creating chart: {e}")
@@ -339,21 +335,19 @@ class ImageGenerationAgent(BaseAgent):
         """Generate time labels for a given period."""
         if period == "24h":
             return ["00:00", "04:00", "08:00", "12:00", "16:00", "20:00", "24:00"]
-        elif period == "7d":
+        if period == "7d":
             return ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
-        elif period == "30d":
+        if period == "30d":
             return ["Week 1", "Week 2", "Week 3", "Week 4"]
-        else:
-            return ["Start", "Mid", "End"]
+        return ["Start", "Mid", "End"]
 
     def _get_sample_data(self, period: str) -> list:
         """Generate sample data for a given period."""
         # In practice, fetch real data
         if period == "24h":
             return [45000, 45200, 44800, 46000, 46500, 47000, 47200]
-        elif period == "7d":
+        if period == "7d":
             return [45000, 46000, 45500, 47000, 46800, 48000, 47500]
-        elif period == "30d":
+        if period == "30d":
             return [42000, 45000, 47000, 48000]
-        else:
-            return [100, 105, 103]
+        return [100, 105, 103]

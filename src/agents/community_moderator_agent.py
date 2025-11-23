@@ -449,7 +449,6 @@ If no violation:
         Returns:
             Dictionary with moderation stats
         """
-        from datetime import datetime, timezone
 
         cutoff = datetime.now(tz=timezone.utc) - timedelta(days=days)
 
