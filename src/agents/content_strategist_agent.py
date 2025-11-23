@@ -84,22 +84,37 @@ class ContentStrategistAgent(BaseAgent):
         }
 
         try:
-            # Get unpublished insights
-            insights = await self._get_unpublished_insights()
-            results["insights_reviewed"] = len(insights)
+            # Query and process everything within same session
+            from sqlalchemy.orm import joinedload
 
-            # Check current content volume for today
-            todays_plans = await self._get_todays_content_plans()
-
-            if len(todays_plans) >= self.max_posts_per_day:
-                self.log_warning(
-                    f"Daily content limit reached ({self.max_posts_per_day}). "
-                    "Skipping content planning."
-                )
-                return results
-
-            # Create content plans for each insight
             with get_db() as db:
+                # Get unpublished insights with content_plans eagerly loaded
+                cutoff_time = datetime.utcnow() - timedelta(hours=24)
+
+                insights = db.query(Insight).options(
+                    joinedload(Insight.content_plans)
+                ).filter(
+                    Insight.is_published == False,
+                    Insight.timestamp >= cutoff_time
+                ).order_by(
+                    Insight.confidence.desc()
+                ).all()
+
+                results["insights_reviewed"] = len(insights)
+
+                # Check current content volume for today
+                today_start = datetime.utcnow().replace(hour=0, minute=0, second=0)
+                todays_plans = db.query(ContentPlan).filter(
+                    ContentPlan.timestamp >= today_start
+                ).all()
+
+                if len(todays_plans) >= self.max_posts_per_day:
+                    self.log_warning(
+                        f"Daily content limit reached ({self.max_posts_per_day}). "
+                        "Skipping content planning."
+                    )
+                    return results
+
                 for insight in insights:
                     # Check if already planned
                     if insight.content_plans:
@@ -151,16 +166,24 @@ class ContentStrategistAgent(BaseAgent):
         Returns:
             List of unpublished insights, ordered by confidence
         """
+        from sqlalchemy.orm import joinedload
+
         with get_db() as db:
             # Get insights from the last 24 hours that aren't published
             cutoff_time = datetime.utcnow() - timedelta(hours=24)
 
-            insights = db.query(Insight).filter(
+            insights = db.query(Insight).options(
+                joinedload(Insight.content_plans)
+            ).filter(
                 Insight.is_published == False,
                 Insight.timestamp >= cutoff_time
             ).order_by(
                 Insight.confidence.desc()
             ).all()
+
+            # Expunge objects from session so they can be used outside
+            for insight in insights:
+                db.expunge(insight)
 
             return insights
 
