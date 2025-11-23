@@ -1,9 +1,10 @@
 """Database initialization script."""
 
 import sys
+
 from loguru import logger
 
-from src.database.connection import init_db, drop_db
+from src.database.connection import drop_db, init_db
 from src.utils.logger import setup_logger
 
 

@@ -1,13 +1,13 @@
 """ContentCreationAgent - Generates content based on insights and content plans."""
 
 import json
-from typing import Dict, List
+
 from anthropic import Anthropic
 
+from config.config import settings
 from src.agents.base_agent import BaseAgent
 from src.database.connection import get_db
-from src.database.models import ContentPlan, ContentFormat
-from config.config import settings
+from src.database.models import ContentFormat, ContentPlan
 
 
 class ContentCreationAgent(BaseAgent):
@@ -50,7 +50,7 @@ class ContentCreationAgent(BaseAgent):
             )
         }
 
-    async def execute(self) -> Dict:
+    async def execute(self) -> dict:
         """
         Execute content creation for pending content plans.
 
@@ -116,7 +116,7 @@ class ContentCreationAgent(BaseAgent):
 
         return results
 
-    async def _get_pending_plans(self) -> List[ContentPlan]:
+    async def _get_pending_plans(self) -> list[ContentPlan]:
         """
         Get content plans that are pending content creation.
 
@@ -130,7 +130,7 @@ class ContentCreationAgent(BaseAgent):
 
             return plans
 
-    async def _generate_content(self, plan: ContentPlan) -> Dict:
+    async def _generate_content(self, plan: ContentPlan) -> dict:
         """
         Generate content for a content plan.
 
@@ -154,7 +154,7 @@ class ContentCreationAgent(BaseAgent):
         else:
             return await self._generate_tweet(insight, plan)
 
-    async def _generate_tweet(self, insight, plan: ContentPlan) -> Dict:
+    async def _generate_tweet(self, insight, plan: ContentPlan) -> dict:
         """Generate a single tweet."""
         personality = self.personality_prompts.get(
             self.personality,
@@ -202,7 +202,7 @@ Tweet:"""
             self.log_error(f"Error generating tweet: {e}")
             return None
 
-    async def _generate_thread(self, insight, plan: ContentPlan) -> Dict:
+    async def _generate_thread(self, insight, plan: ContentPlan) -> dict:
         """Generate a Twitter thread."""
         personality = self.personality_prompts.get(
             self.personality,
@@ -248,15 +248,15 @@ Thread:"""
             # Try to parse as JSON
             try:
                 # Extract JSON array from the response
-                start_idx = response_text.find('[')
-                end_idx = response_text.rfind(']') + 1
+                start_idx = response_text.find("[")
+                end_idx = response_text.rfind("]") + 1
                 json_str = response_text[start_idx:end_idx]
                 thread_tweets = json.loads(json_str)
             except:
                 # Fallback: split by newlines
                 thread_tweets = [
                     t.strip()
-                    for t in response_text.split('\n')
+                    for t in response_text.split("\n")
                     if t.strip() and len(t.strip()) > 10
                 ][:thread_length]
 
@@ -276,7 +276,7 @@ Thread:"""
             self.log_error(f"Error generating thread: {e}")
             return None
 
-    async def _generate_telegram_message(self, insight, plan: ContentPlan) -> Dict:
+    async def _generate_telegram_message(self, insight, plan: ContentPlan) -> dict:
         """Generate a Telegram message."""
         personality = self.personality_prompts.get(
             self.personality,
@@ -321,7 +321,7 @@ Message:"""
             self.log_error(f"Error generating Telegram message: {e}")
             return None
 
-    async def _generate_blog_post(self, insight, plan: ContentPlan) -> Dict:
+    async def _generate_blog_post(self, insight, plan: ContentPlan) -> dict:
         """Generate a blog post."""
         personality = self.personality_prompts.get(
             self.personality,
@@ -358,8 +358,8 @@ Blog Post:"""
             blog_text = message.content[0].text.strip()
 
             # Extract title (first line starting with #)
-            lines = blog_text.split('\n')
-            title = lines[0].replace('#', '').strip() if lines else "Market Analysis"
+            lines = blog_text.split("\n")
+            title = lines[0].replace("#", "").strip() if lines else "Market Analysis"
 
             return {
                 "title": title,

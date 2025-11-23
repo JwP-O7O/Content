@@ -1,16 +1,17 @@
 """CommunityModeratorAgent - Moderates private community channels."""
 
 import re
-from typing import Dict, List, Optional
 from datetime import datetime
+from typing import Optional
+
 from anthropic import Anthropic
 
+from config.config import settings
 from src.agents.base_agent import BaseAgent
-from src.database.connection import get_db
-from src.database.models import CommunityUser, ModerationAction
 from src.api_integrations.discord_api import DiscordAPI
 from src.api_integrations.telegram_api import TelegramAPI
-from config.config import settings
+from src.database.connection import get_db
+from src.database.models import ModerationAction
 
 
 class CommunityModeratorAgent(BaseAgent):
@@ -55,11 +56,11 @@ class CommunityModeratorAgent(BaseAgent):
 
         # Moderation rules
         self.spam_patterns = [
-            r'(?i)(buy|sell|click|check\s+out).{0,50}(link|here|now)',
-            r'(?i)t\.me/[\w]+',  # Telegram links
-            r'(?i)discord\.gg/[\w]+',  # Discord invites
-            r'(?i)(earn|make).{0,20}\$\d+',  # Money making schemes
-            r'(?i)(dm|message)\s+me',  # Soliciting DMs
+            r"(?i)(buy|sell|click|check\s+out).{0,50}(link|here|now)",
+            r"(?i)t\.me/[\w]+",  # Telegram links
+            r"(?i)discord\.gg/[\w]+",  # Discord invites
+            r"(?i)(earn|make).{0,20}\$\d+",  # Money making schemes
+            r"(?i)(dm|message)\s+me",  # Soliciting DMs
         ]
 
         self.scam_keywords = [
@@ -76,7 +77,7 @@ class CommunityModeratorAgent(BaseAgent):
         # Confidence threshold for AI moderation
         self.ai_moderation_threshold = 0.8
 
-    async def execute(self) -> Dict:
+    async def execute(self) -> dict:
         """
         Execute moderation checks.
 
@@ -115,7 +116,7 @@ class CommunityModeratorAgent(BaseAgent):
 
         return results
 
-    async def _moderate_discord_channels(self) -> Dict:
+    async def _moderate_discord_channels(self) -> dict:
         """
         Moderate Discord channels.
 
@@ -186,7 +187,7 @@ class CommunityModeratorAgent(BaseAgent):
         content: str,
         user_id: str,
         user_name: str
-    ) -> Optional[Dict]:
+    ) -> Optional[dict]:
         """
         Check a message for violations.
 
@@ -277,7 +278,7 @@ Respond with just "YES" or "NO"."""
             self.log_error(f"AI moderation check error: {e}")
             return False
 
-    async def _ai_comprehensive_check(self, content: str) -> Optional[Dict]:
+    async def _ai_comprehensive_check(self, content: str) -> Optional[dict]:
         """
         Use AI for comprehensive moderation check.
 
@@ -438,7 +439,7 @@ If no violation:
             db.add(moderation)
             db.commit()
 
-    async def get_moderation_stats(self, days: int = 7) -> Dict:
+    async def get_moderation_stats(self, days: int = 7) -> dict:
         """
         Get moderation statistics.
 

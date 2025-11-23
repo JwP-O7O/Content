@@ -1,14 +1,14 @@
 """Metrics collection and tracking utilities."""
 
-import asyncio
-from typing import Dict, List, Optional
 from datetime import datetime, timedelta
+from typing import Optional
+
 from loguru import logger
 
+from config.config import settings
+from src.api_integrations.twitter_api import TwitterAPI
 from src.database.connection import get_db
 from src.database.models import PublishedContent
-from src.api_integrations.twitter_api import TwitterAPI
-from config.config import settings
 
 
 class MetricsCollector:
@@ -31,7 +31,7 @@ class MetricsCollector:
         except Exception as e:
             logger.warning(f"Twitter API not configured: {e}")
 
-    async def collect_all_metrics(self, hours_back: int = 48) -> Dict:
+    async def collect_all_metrics(self, hours_back: int = 48) -> dict:
         """
         Collect metrics for all recent published content.
 
@@ -93,7 +93,7 @@ class MetricsCollector:
     async def collect_metrics_for_content(
         self,
         content: PublishedContent
-    ) -> Optional[Dict]:
+    ) -> Optional[dict]:
         """
         Collect metrics for a specific piece of content.
 
@@ -113,7 +113,7 @@ class MetricsCollector:
     async def _collect_twitter_metrics(
         self,
         content: PublishedContent
-    ) -> Optional[Dict]:
+    ) -> Optional[dict]:
         """Collect metrics from Twitter."""
         if not self.twitter_api or not content.post_id:
             return None
@@ -160,7 +160,7 @@ class MetricsCollector:
     async def _collect_telegram_metrics(
         self,
         content: PublishedContent
-    ) -> Optional[Dict]:
+    ) -> Optional[dict]:
         """Collect metrics from Telegram."""
         # Telegram doesn't provide view counts via bot API for channels
         # Would need MTProto API for detailed analytics
@@ -174,7 +174,7 @@ class MetricsCollector:
             "engagement_rate": 0
         }
 
-    async def get_performance_summary(self, days: int = 7) -> Dict:
+    async def get_performance_summary(self, days: int = 7) -> dict:
         """
         Get performance summary for the last N days.
 
@@ -260,7 +260,7 @@ class MetricsCollector:
                 "platform_breakdown": platform_stats
             }
 
-    async def get_trending_topics(self, days: int = 7) -> List[Dict]:
+    async def get_trending_topics(self, days: int = 7) -> list[dict]:
         """
         Identify trending topics based on high-performing content.
 

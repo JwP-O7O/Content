@@ -1,16 +1,14 @@
 """MarketScannerAgent - Continuously scans markets for data."""
 
 import asyncio
-from typing import Dict, List
-from datetime import datetime
 
+from config.config import settings
 from src.agents.base_agent import BaseAgent
-from src.database.connection import get_db
-from src.database.models import MarketData, NewsArticle, SentimentData
 from src.api_integrations.exchange_api import ExchangeAPI
 from src.api_integrations.news_api import NewsAPI
 from src.api_integrations.twitter_api import TwitterAPI
-from config.config import settings
+from src.database.connection import get_db
+from src.database.models import MarketData, NewsArticle, SentimentData
 
 
 class MarketScannerAgent(BaseAgent):
@@ -54,7 +52,7 @@ class MarketScannerAgent(BaseAgent):
             "ADAUSDT", "XRPUSDT", "DOGEUSDT", "MATICUSDT"
         ]
 
-    async def execute(self) -> Dict:
+    async def execute(self) -> dict:
         """
         Execute the market scanning process.
 
@@ -236,7 +234,7 @@ class MarketScannerAgent(BaseAgent):
 
         return count
 
-    async def scan_specific_asset(self, asset: str) -> Dict:
+    async def scan_specific_asset(self, asset: str) -> dict:
         """
         Perform a targeted scan for a specific asset.
 

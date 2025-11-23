@@ -1,7 +1,9 @@
 """Logging configuration."""
 
 import sys
+
 from loguru import logger
+
 from config.config import settings
 
 

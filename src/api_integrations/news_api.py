@@ -1,9 +1,8 @@
 """News API integration for crypto news."""
 
-import aiohttp
-import feedparser
-from typing import List, Dict
 from datetime import datetime, timedelta
+
+import feedparser
 from loguru import logger
 
 
@@ -23,7 +22,7 @@ class NewsAPI:
             "https://decrypt.co/feed",
         ]
 
-    async def fetch_latest_news(self, max_articles: int = 20) -> List[Dict]:
+    async def fetch_latest_news(self, max_articles: int = 20) -> list[dict]:
         """
         Fetch the latest crypto news from multiple sources.
 
@@ -77,7 +76,7 @@ class NewsAPI:
         except:
             return datetime.utcnow()
 
-    async def search_news(self, keyword: str, days_back: int = 7) -> List[Dict]:
+    async def search_news(self, keyword: str, days_back: int = 7) -> list[dict]:
         """
         Search for news articles containing a specific keyword.
 

@@ -1,9 +1,9 @@
 """Base agent class that all agents inherit from."""
 
-from abc import ABC, abstractmethod
-from datetime import datetime
-from typing import Any, Dict, Optional
 import time
+from abc import ABC, abstractmethod
+from typing import Any, Optional
+
 from loguru import logger
 
 from src.database.connection import get_db
@@ -34,7 +34,6 @@ class BaseAgent(ABC):
 
         This method should be implemented by all subclasses.
         """
-        pass
 
     async def run(self, *args, **kwargs) -> Any:
         """
@@ -43,7 +42,7 @@ class BaseAgent(ABC):
         This method should be called instead of execute() directly.
         """
         start_time = time.time()
-        action = kwargs.get('action', 'execute')
+        action = kwargs.get("action", "execute")
 
         logger.info(f"{self.name} starting: {action}")
 
@@ -89,7 +88,7 @@ class BaseAgent(ABC):
         self,
         action: str,
         status: str,
-        details: Optional[Dict] = None,
+        details: Optional[dict] = None,
         error_message: Optional[str] = None,
         execution_time: Optional[float] = None
     ):

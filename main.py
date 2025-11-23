@@ -2,11 +2,12 @@
 
 import asyncio
 import sys
+
 from loguru import logger
 
-from src.utils.logger import setup_logger
 from src.orchestrator import AgentOrchestrator
 from src.scheduler import ContentCreatorScheduler
+from src.utils.logger import setup_logger
 
 
 def print_banner():
@@ -116,15 +117,15 @@ async def run_interactive_mode():
                 print("\n" + "="*60)
                 print("KPI DASHBOARD")
                 print("="*60)
-                print(f"\nLast 24 Hours:")
+                print("\nLast 24 Hours:")
                 print(f"  Insights Generated:  {kpis['insights_generated_24h']}")
                 print(f"  Content Published:   {kpis['content_published_24h']}")
-                print(f"\nLast 7 Days:")
+                print("\nLast 7 Days:")
                 print(f"  Insights Generated:  {kpis['insights_generated_7d']}")
                 print(f"  Content Published:   {kpis['content_published_7d']}")
                 print(f"  Total Engagement:    {kpis['total_engagement_7d']}")
                 print(f"  Avg Engagement Rate: {kpis['avg_engagement_rate_7d']:.2%}")
-                print(f"\nPipeline:")
+                print("\nPipeline:")
                 print(f"  Content in Queue:    {kpis['content_in_pipeline']}")
                 print(f"\nLast Updated: {kpis['last_updated']}")
                 print("="*60 + "\n")
@@ -157,7 +158,7 @@ async def run_interactive_mode():
                 logger.info("Loading subscription stats...")
 
                 from src.database.connection import get_db
-                from src.database.models import Subscription, CommunityUser, UserTier
+                from src.database.models import CommunityUser, Subscription, UserTier
 
                 with get_db() as db:
                     total_users = db.query(CommunityUser).count()
@@ -187,7 +188,7 @@ async def run_interactive_mode():
                 print(f"Paying Members:      {paying_users}")
                 print(f"Conversion Rate:     {(paying_users/total_users*100):.1f}%" if total_users > 0 else "N/A")
                 print(f"\nActive Subscriptions: {active_subs}")
-                print(f"\nBy Tier:")
+                print("\nBy Tier:")
                 print(f"  Basic:   {basic}")
                 print(f"  Premium: {premium}")
                 print(f"  VIP:     {vip}")
@@ -240,8 +241,8 @@ async def run_interactive_mode():
                 print("SYSTEM HEALTH SCORE")
                 print("="*60)
                 print(f"\nOverall Health: {health['health_score']}/100 ({health['status'].upper()})")
-                print(f"\nComponent Scores:")
-                for component, score in health['components'].items():
+                print("\nComponent Scores:")
+                for component, score in health["components"].items():
                     print(f"  {component.replace('_', ' ').title()}: {score}/100")
                 print(f"\nTimestamp: {health['timestamp']}")
                 print("="*60 + "\n")

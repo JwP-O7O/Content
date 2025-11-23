@@ -1,8 +1,9 @@
 """Exchange API integration for market data."""
 
-import aiohttp
-from typing import Dict, List, Optional
 from datetime import datetime
+from typing import Optional
+
+import aiohttp
 from loguru import logger
 
 
@@ -25,7 +26,7 @@ class ExchangeAPI:
         self.api_secret = api_secret
         self.base_url = "https://api.binance.com/api/v3"
 
-    async def get_ticker_24h(self, symbol: str = "BTCUSDT") -> Dict:
+    async def get_ticker_24h(self, symbol: str = "BTCUSDT") -> dict:
         """
         Get 24-hour price change statistics.
 
@@ -60,7 +61,7 @@ class ExchangeAPI:
             logger.error(f"Error fetching ticker data: {e}")
             return None
 
-    async def get_top_gainers_losers(self, limit: int = 10) -> Dict[str, List[Dict]]:
+    async def get_top_gainers_losers(self, limit: int = 10) -> dict[str, list[dict]]:
         """
         Get top gainers and losers in the last 24 hours.
 
@@ -129,7 +130,7 @@ class ExchangeAPI:
         symbol: str = "BTCUSDT",
         interval: str = "1h",
         limit: int = 100
-    ) -> List[Dict]:
+    ) -> list[dict]:
         """
         Get candlestick/kline data for technical analysis.
 

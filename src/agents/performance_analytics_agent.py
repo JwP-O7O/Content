@@ -1,18 +1,23 @@
 """PerformanceAnalyticsAgent - Advanced analytics and performance tracking."""
 
-from typing import Dict, List, Optional
-from datetime import datetime, timedelta
 import json
+from datetime import datetime, timedelta
+from typing import Optional
+
 from anthropic import Anthropic
 
+from config.config import settings
 from src.agents.base_agent import BaseAgent
 from src.database.connection import get_db
 from src.database.models import (
-    PerformanceSnapshot, PublishedContent, Insight,
-    CommunityUser, Subscription, UserTier, ConversionAttempt,
-    InsightType, ContentFormat
+    CommunityUser,
+    ConversionAttempt,
+    Insight,
+    PerformanceSnapshot,
+    PublishedContent,
+    Subscription,
+    UserTier,
 )
-from config.config import settings
 
 
 class PerformanceAnalyticsAgent(BaseAgent):
@@ -35,7 +40,7 @@ class PerformanceAnalyticsAgent(BaseAgent):
         # Initialize LLM for insights
         self.llm_client = Anthropic(api_key=settings.anthropic_api_key)
 
-    async def execute(self) -> Dict:
+    async def execute(self) -> dict:
         """
         Execute performance analytics workflow.
 
@@ -243,7 +248,7 @@ class PerformanceAnalyticsAgent(BaseAgent):
 
             return snapshot
 
-    async def _analyze_trends(self) -> List[Dict]:
+    async def _analyze_trends(self) -> list[dict]:
         """
         Analyze performance trends over time.
 
@@ -310,7 +315,7 @@ class PerformanceAnalyticsAgent(BaseAgent):
 
             return trends
 
-    def _calculate_trend(self, values: List[float]) -> Optional[Dict]:
+    def _calculate_trend(self, values: list[float]) -> Optional[dict]:
         """
         Calculate trend direction and significance.
 
@@ -359,7 +364,7 @@ class PerformanceAnalyticsAgent(BaseAgent):
             "significance": significance
         }
 
-    async def _detect_anomalies(self) -> List[Dict]:
+    async def _detect_anomalies(self) -> list[dict]:
         """
         Detect performance anomalies.
 
@@ -400,7 +405,7 @@ class PerformanceAnalyticsAgent(BaseAgent):
 
             return anomalies
 
-    def _detect_anomaly(self, values: List[float], metric: str) -> Optional[Dict]:
+    def _detect_anomaly(self, values: list[float], metric: str) -> Optional[dict]:
         """
         Detect anomaly using simple statistical method.
 
@@ -443,7 +448,7 @@ class PerformanceAnalyticsAgent(BaseAgent):
 
         return None
 
-    async def _generate_predictions(self) -> List[Dict]:
+    async def _generate_predictions(self) -> list[dict]:
         """
         Generate predictive insights using AI.
 
@@ -503,8 +508,8 @@ Generate predictions as JSON array:
                 response_text = message.content[0].text.strip()
 
                 # Parse JSON
-                start_idx = response_text.find('[')
-                end_idx = response_text.rfind(']') + 1
+                start_idx = response_text.find("[")
+                end_idx = response_text.rfind("]") + 1
                 json_str = response_text[start_idx:end_idx]
                 predictions = json.loads(json_str)
 
@@ -585,7 +590,7 @@ Generate a 3-paragraph executive summary covering:
                 self.log_error(f"Error generating executive summary: {e}")
                 return f"Performance Summary ({days} days): {total_content} content published, {avg_engagement:.2%} avg engagement, {total_conversions} conversions, ${total_revenue:.2f} revenue"
 
-    async def get_roi_metrics(self, days: int = 30) -> Dict:
+    async def get_roi_metrics(self, days: int = 30) -> dict:
         """
         Calculate ROI and efficiency metrics.
 

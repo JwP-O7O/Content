@@ -1,14 +1,22 @@
 """Database models for the Content Creator system."""
 
+import enum
 from datetime import datetime
+
 from sqlalchemy import (
-    Column, Integer, String, Float, DateTime, Boolean,
-    Text, JSON, ForeignKey, Enum
+    JSON,
+    Boolean,
+    Column,
+    DateTime,
+    Enum,
+    Float,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
 )
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
-import enum
-
 
 Base = declarative_base()
 

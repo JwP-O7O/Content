@@ -1,0 +1,56 @@
+# Pre-commit hooks configuration
+# Install: pre-commit install
+# Run manually: pre-commit run --all-files
+
+repos:
+  # Ruff - Fast Python linter and formatter
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.1.9
+    hooks:
+      # Run the linter
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix]
+      # Run the formatter
+      - id: ruff-format
+
+  # General pre-commit hooks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: '\.md$'
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+        args: ['--maxkb=1000']
+      - id: check-json
+      - id: check-toml
+      - id: check-merge-conflict
+      - id: detect-private-key
+      - id: mixed-line-ending
+      - id: check-case-conflict
+
+  # Check for Python syntax errors
+  - repo: https://github.com/pre-commit/pygrep-hooks
+    rev: v1.10.0
+    hooks:
+      - id: python-check-blanket-noqa
+      - id: python-check-blanket-type-ignore
+      - id: python-use-type-annotations
+
+  # Type checking with mypy (optional, can be slow)
+  # Uncomment to enable:
+  # - repo: https://github.com/pre-commit/mirrors-mypy
+  #   rev: v1.7.1
+  #   hooks:
+  #     - id: mypy
+  #       additional_dependencies: [types-requests]
+  #       args: [--ignore-missing-imports, --no-strict-optional]
+
+# Configuration for pre-commit.ci (if using)
+ci:
+  autofix_commit_msg: |
+    [pre-commit.ci] auto fixes from pre-commit hooks
+  autoupdate_commit_msg: |
+    [pre-commit.ci] pre-commit autoupdate
+  skip: []
