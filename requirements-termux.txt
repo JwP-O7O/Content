@@ -1,0 +1,44 @@
+# Termux-compatible requirements (no heavy compiled packages)
+# Install numpy, pandas, scipy via: pkg install python-numpy python-scipy
+
+# Core Dependencies
+python-dotenv==1.0.0
+pydantic==2.5.0
+pydantic-settings==2.1.0
+
+# Database
+psycopg2-binary==2.9.9
+sqlalchemy==2.0.23
+alembic==1.13.0
+
+# Scheduling
+APScheduler==3.10.4
+
+# LLM APIs
+anthropic==0.8.0
+google-generativeai==0.3.1
+openai==1.6.1
+
+# API Integrations
+tweepy==4.14.0
+python-telegram-bot==20.7
+requests==2.31.0
+
+# Data Processing (install via pkg instead)
+# numpy - use: pkg install python-numpy
+# pandas - use: pkg install python-numpy (includes pandas)
+# scipy - use: pkg install python-scipy
+ta==0.11.0  # Technical Analysis library
+
+# Utilities
+aiohttp==3.9.1
+loguru==0.7.2
+
+# Phase 3 - Monetization & Community
+stripe==7.8.0
+discord.py==2.3.2
+
+# Testing
+pytest==7.4.3
+pytest-asyncio==0.21.1
+pytest-mock==3.12.0

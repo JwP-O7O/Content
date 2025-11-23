@@ -1,0 +1,28 @@
+# Minimal requirements - only essentials, no heavy compile requirements
+# For quick testing on Termux or resource-constrained environments
+
+# Core Dependencies
+python-dotenv==1.0.0
+pydantic==2.5.0
+pydantic-settings==2.1.0
+
+# Database (use SQLite instead of PostgreSQL for minimal setup)
+sqlalchemy==2.0.23
+
+# LLM APIs
+anthropic==0.8.0
+
+# Basic utilities
+requests==2.31.0
+aiohttp==3.9.1
+loguru==0.7.2
+
+# Testing
+pytest==7.4.3
+pytest-asyncio==0.21.1
+
+# Note: For full functionality, install remaining packages when needed:
+# - APScheduler (for scheduling)
+# - tweepy, python-telegram-bot (for social media)
+# - stripe, discord.py (for Phase 3)
+# - psycopg2-binary (for PostgreSQL)
