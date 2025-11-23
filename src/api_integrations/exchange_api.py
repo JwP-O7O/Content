@@ -1,6 +1,6 @@
 """Exchange API integration for market data."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 import aiohttp
@@ -51,7 +51,7 @@ class ExchangeAPI:
                             "price_change_24h": float(data["priceChangePercent"]),
                             "high_24h": float(data["highPrice"]),
                             "low_24h": float(data["lowPrice"]),
-                            "timestamp": datetime.utcnow(),
+                            "timestamp": datetime.now(tz=timezone.utc),
                             "raw_data": data
                         }
                     else:
@@ -116,7 +116,7 @@ class ExchangeAPI:
                         return {
                             "gainers": gainers,
                             "losers": losers,
-                            "timestamp": datetime.utcnow()
+                            "timestamp": datetime.now(tz=timezone.utc)
                         }
                     else:
                         logger.error(f"Failed to fetch all tickers: {response.status}")
@@ -156,7 +156,7 @@ class ExchangeAPI:
                         klines = await response.json()
                         return [
                             {
-                                "timestamp": datetime.fromtimestamp(k[0] / 1000),
+                                "timestamp": datetime.fromtimestamp(k[0] / 1000, tz=timezone.utc),
                                 "open": float(k[1]),
                                 "high": float(k[2]),
                                 "low": float(k[3]),

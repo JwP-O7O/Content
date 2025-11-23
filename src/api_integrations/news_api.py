@@ -1,6 +1,6 @@
 """News API integration for crypto news."""
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import feedparser
 from loguru import logger
@@ -74,7 +74,7 @@ class NewsAPI:
             from dateutil import parser
             return parser.parse(date_string)
         except:
-            return datetime.utcnow()
+            return datetime.now(tz=timezone.utc)
 
     async def search_news(self, keyword: str, days_back: int = 7) -> list[dict]:
         """
@@ -88,7 +88,7 @@ class NewsAPI:
             List of matching articles
         """
         all_news = await self.fetch_latest_news(max_articles=50)
-        cutoff_date = datetime.utcnow() - timedelta(days=days_back)
+        cutoff_date = datetime.now(tz=timezone.utc) - timedelta(days=days_back)
 
         matching_articles = [
             article for article in all_news

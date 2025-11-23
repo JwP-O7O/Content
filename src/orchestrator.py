@@ -1,7 +1,7 @@
 """Main orchestrator that coordinates all agents."""
 
 import asyncio
-from datetime import datetime
+from datetime import datetime, timezone
 
 from loguru import logger
 
@@ -88,7 +88,7 @@ class AgentOrchestrator:
         logger.info("="*50)
 
         pipeline_results = {
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(tz=timezone.utc).isoformat(),
             "agents": {}
         }
 
@@ -217,7 +217,7 @@ class AgentOrchestrator:
         logger.info("="*50)
 
         pipeline_results = {
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(tz=timezone.utc).isoformat(),
             "agents": {}
         }
 
@@ -306,7 +306,7 @@ class AgentOrchestrator:
         logger.info("="*50)
 
         pipeline_results = {
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(tz=timezone.utc).isoformat(),
             "agents": {}
         }
 
@@ -397,7 +397,7 @@ class AgentOrchestrator:
         logger.info("="*50)
 
         pipeline_results = {
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(tz=timezone.utc).isoformat(),
             "agents": {}
         }
 

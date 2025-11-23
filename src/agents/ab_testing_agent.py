@@ -2,7 +2,7 @@
 
 import json
 import math
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from anthropic import Anthropic
@@ -132,7 +132,7 @@ class ABTestingAgent(BaseAgent):
                 if winner:
                     # Complete the test
                     test.status = TestStatus.COMPLETED
-                    test.completed_at = datetime.utcnow()
+                    test.completed_at = datetime.now(tz=timezone.utc)
                     test.winning_variant_id = winner["variant_id"]
                     test.confidence_level = winner["confidence"]
                     test.improvement_percentage = winner["improvement"]
@@ -160,12 +160,12 @@ class ABTestingAgent(BaseAgent):
                     )
 
                 # Check for stale tests (running too long)
-                test_age = datetime.utcnow() - test.started_at
+                test_age = datetime.now(tz=timezone.utc) - test.started_at
                 if test_age.days > self.test_duration_days:
                     # No clear winner after max duration
                     if not winner:
                         test.status = TestStatus.COMPLETED
-                        test.completed_at = datetime.utcnow()
+                        test.completed_at = datetime.now(tz=timezone.utc)
                         db.commit()
 
                         completed_count += 1
@@ -411,7 +411,7 @@ Provide a single-sentence insight explaining why the winning variant likely perf
                 return {"created_count": 0}
 
             # Find high-confidence insights that could benefit from testing
-            cutoff = datetime.utcnow() - timedelta(days=1)
+            cutoff = datetime.now(tz=timezone.utc) - timedelta(days=1)
 
             insights = db.query(Insight).filter(
                 Insight.timestamp >= cutoff,
@@ -624,7 +624,7 @@ Be creative and data-driven in your variations."""
         Returns:
             List of learnings
         """
-        cutoff = datetime.utcnow() - timedelta(days=days)
+        cutoff = datetime.now(tz=timezone.utc) - timedelta(days=days)
 
         with get_db() as db:
             completed_tests = db.query(ABTest).filter(

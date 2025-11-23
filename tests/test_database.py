@@ -1,6 +1,6 @@
 """Unit tests for database models and connections."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 import pytest
 from sqlalchemy import create_engine
@@ -250,7 +250,7 @@ class TestPhase3Models:
 
         # Upgrade to premium
         user.tier = UserTier.PREMIUM
-        user.converted_at = datetime.utcnow()
+        user.converted_at = datetime.now(tz=timezone.utc)
         in_memory_db.commit()
 
         assert user.tier == UserTier.PREMIUM

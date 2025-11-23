@@ -1,7 +1,7 @@
 """StrategyTuningAgent - Automatically optimizes system strategies based on performance."""
 
 import json
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from anthropic import Anthropic
 
@@ -103,7 +103,7 @@ class StrategyTuningAgent(BaseAgent):
         """
         self.log_info("Analyzing content performance...")
 
-        cutoff = datetime.utcnow() - timedelta(days=30)
+        cutoff = datetime.now(tz=timezone.utc) - timedelta(days=30)
 
         with get_db() as db:
             content_items = db.query(PublishedContent).join(
@@ -197,7 +197,7 @@ class StrategyTuningAgent(BaseAgent):
         """
         self.log_info("Analyzing conversion performance...")
 
-        cutoff = datetime.utcnow() - timedelta(days=30)
+        cutoff = datetime.now(tz=timezone.utc) - timedelta(days=30)
 
         with get_db() as db:
             attempts = db.query(ConversionAttempt).filter(
@@ -257,7 +257,7 @@ class StrategyTuningAgent(BaseAgent):
         """
         self.log_info("Analyzing optimal posting times...")
 
-        cutoff = datetime.utcnow() - timedelta(days=30)
+        cutoff = datetime.now(tz=timezone.utc) - timedelta(days=30)
 
         with get_db() as db:
             content_items = db.query(PublishedContent).filter(
@@ -405,7 +405,7 @@ Format as JSON array:
                     "action": rec["action"],
                     "adjustment": rec["adjustment"],
                     "expected_impact": rec["expected_impact"],
-                    "applied_at": datetime.utcnow().isoformat()
+                    "applied_at": datetime.now(tz=timezone.utc).isoformat()
                 })
 
                 adjustment_count += 1

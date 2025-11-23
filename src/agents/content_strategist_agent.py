@@ -1,6 +1,6 @@
 """ContentStrategistAgent - Plans content strategy based on insights."""
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from src.agents.base_agent import BaseAgent
 from src.database.connection import get_db
@@ -149,7 +149,7 @@ class ContentStrategistAgent(BaseAgent):
         """
         with get_db() as db:
             # Get insights from the last 24 hours that aren't published
-            cutoff_time = datetime.utcnow() - timedelta(hours=24)
+            cutoff_time = datetime.now(tz=timezone.utc) - timedelta(hours=24)
 
             insights = db.query(Insight).filter(
                 Insight.is_published.is_(False),
@@ -168,7 +168,7 @@ class ContentStrategistAgent(BaseAgent):
             List of today's content plans
         """
         with get_db() as db:
-            today_start = datetime.utcnow().replace(hour=0, minute=0, second=0)
+            today_start = datetime.now(tz=timezone.utc).replace(hour=0, minute=0, second=0)
 
             plans = db.query(ContentPlan).filter(
                 ContentPlan.timestamp >= today_start
@@ -261,7 +261,7 @@ class ContentStrategistAgent(BaseAgent):
         Returns:
             Datetime for next optimal posting
         """
-        now = datetime.utcnow()
+        now = datetime.now(tz=timezone.utc)
         current_hour = now.hour
 
         # Find next optimal time
@@ -290,7 +290,7 @@ class ContentStrategistAgent(BaseAgent):
 
         with get_db() as db:
             # Get published content from last 30 days
-            cutoff = datetime.utcnow() - timedelta(days=30)
+            cutoff = datetime.now(tz=timezone.utc) - timedelta(days=30)
 
             published = db.query(PublishedContent).filter(
                 PublishedContent.published_at >= cutoff
@@ -380,7 +380,7 @@ class ContentStrategistAgent(BaseAgent):
 
         with get_db() as db:
             # Find high-performing content from last 7 days
-            cutoff = datetime.utcnow() - timedelta(days=7)
+            cutoff = datetime.now(tz=timezone.utc) - timedelta(days=7)
 
             high_performers = db.query(PublishedContent).filter(
                 PublishedContent.published_at >= cutoff,

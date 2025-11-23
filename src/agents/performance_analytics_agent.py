@@ -1,7 +1,7 @@
 """PerformanceAnalyticsAgent - Advanced analytics and performance tracking."""
 
 import json
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from anthropic import Anthropic
@@ -98,7 +98,7 @@ class PerformanceAnalyticsAgent(BaseAgent):
         self.log_info(f"Creating {period_type} performance snapshot...")
 
         # Determine time range
-        now = datetime.utcnow()
+        now = datetime.now(tz=timezone.utc)
         if period_type == "daily":
             cutoff = now - timedelta(days=1)
         elif period_type == "weekly":
@@ -261,7 +261,7 @@ class PerformanceAnalyticsAgent(BaseAgent):
 
         with get_db() as db:
             # Get last 30 days of snapshots
-            cutoff = datetime.utcnow() - timedelta(days=30)
+            cutoff = datetime.now(tz=timezone.utc) - timedelta(days=30)
 
             snapshots = db.query(PerformanceSnapshot).filter(
                 PerformanceSnapshot.snapshot_date >= cutoff,
@@ -377,7 +377,7 @@ class PerformanceAnalyticsAgent(BaseAgent):
 
         with get_db() as db:
             # Get last 14 days
-            cutoff = datetime.utcnow() - timedelta(days=14)
+            cutoff = datetime.now(tz=timezone.utc) - timedelta(days=14)
 
             snapshots = db.query(PerformanceSnapshot).filter(
                 PerformanceSnapshot.snapshot_date >= cutoff,
@@ -461,7 +461,7 @@ class PerformanceAnalyticsAgent(BaseAgent):
 
         with get_db() as db:
             # Get last 30 days of data
-            cutoff = datetime.utcnow() - timedelta(days=30)
+            cutoff = datetime.now(tz=timezone.utc) - timedelta(days=30)
 
             snapshots = db.query(PerformanceSnapshot).filter(
                 PerformanceSnapshot.snapshot_date >= cutoff,
@@ -532,7 +532,7 @@ Generate predictions as JSON array:
         """
         self.log_info(f"Generating executive summary for last {days} days...")
 
-        cutoff = datetime.utcnow() - timedelta(days=days)
+        cutoff = datetime.now(tz=timezone.utc) - timedelta(days=days)
 
         with get_db() as db:
             snapshots = db.query(PerformanceSnapshot).filter(
@@ -600,7 +600,7 @@ Generate a 3-paragraph executive summary covering:
         Returns:
             Dictionary with ROI metrics
         """
-        cutoff = datetime.utcnow() - timedelta(days=days)
+        cutoff = datetime.now(tz=timezone.utc) - timedelta(days=days)
 
         with get_db() as db:
             # Get revenue

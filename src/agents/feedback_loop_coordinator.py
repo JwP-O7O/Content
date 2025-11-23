@@ -1,7 +1,7 @@
 """FeedbackLoopCoordinator - Coordinates the continuous learning and optimization system."""
 
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 
 from anthropic import Anthropic
 
@@ -53,7 +53,7 @@ class FeedbackLoopCoordinator(BaseAgent):
         self.log_info("Starting feedback loop coordination...")
 
         results = {
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(tz=timezone.utc).isoformat(),
             "cycle_complete": False,
             "components": {},
             "synthesized_insights": [],
@@ -282,9 +282,9 @@ Respond with JSON:
         Returns:
             Dictionary with optimization history
         """
-        from datetime import timedelta
+        from datetime import datetime, timezone
 
-        cutoff = datetime.utcnow() - timedelta(days=days)
+        cutoff = datetime.now(tz=timezone.utc) - timedelta(days=days)
 
         with get_db() as db:
             logs = db.query(AgentLog).filter(
@@ -401,11 +401,11 @@ Format as markdown."""
 
         with get_db() as db:
             # Get recent performance snapshot
-            from datetime import timedelta
+            from datetime import datetime, timezone
 
             from src.database.models import PerformanceSnapshot
 
-            cutoff = datetime.utcnow() - timedelta(days=1)
+            cutoff = datetime.now(tz=timezone.utc) - timedelta(days=1)
 
             snapshot = db.query(PerformanceSnapshot).filter(
                 PerformanceSnapshot.snapshot_date >= cutoff
@@ -466,5 +466,5 @@ Format as markdown."""
                 "health_score": round(overall_score, 1),
                 "status": status,
                 "components": {k: round(v, 1) for k, v in components.items()},
-                "timestamp": datetime.utcnow().isoformat()
+                "timestamp": datetime.now(tz=timezone.utc).isoformat()
             }

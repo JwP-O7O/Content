@@ -1,6 +1,6 @@
 """OnboardingAgent - Welcomes and onboards new paying members."""
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from config.config import settings
 from src.agents.base_agent import BaseAgent
@@ -115,7 +115,7 @@ class OnboardingAgent(BaseAgent):
             List of CommunityUser objects
         """
         # Consider members "new" if converted in last 24 hours
-        cutoff = datetime.utcnow() - timedelta(hours=24)
+        cutoff = datetime.now(tz=timezone.utc) - timedelta(hours=24)
 
         with get_db() as db:
             new_members = db.query(CommunityUser).join(Subscription).filter(

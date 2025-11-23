@@ -1,6 +1,6 @@
 """Stripe API integration for payment processing."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 import stripe
@@ -105,11 +105,11 @@ class StripeAPI:
                 "status": subscription.status,
                 "current_period_start": datetime.fromtimestamp(
                     subscription.current_period_start
-                ),
+                , tz=timezone.utc),
                 "current_period_end": datetime.fromtimestamp(
                     subscription.current_period_end
-                ),
-                "trial_end": datetime.fromtimestamp(subscription.trial_end)
+                , tz=timezone.utc),
+                "trial_end": datetime.fromtimestamp(subscription.trial_end, tz=timezone.utc)
                 if subscription.trial_end else None
             }
 
@@ -147,7 +147,7 @@ class StripeAPI:
                 "id": subscription.id,
                 "status": subscription.status,
                 "cancel_at_period_end": subscription.cancel_at_period_end,
-                "cancelled_at": datetime.fromtimestamp(subscription.cancelled_at)
+                "cancelled_at": datetime.fromtimestamp(subscription.cancelled_at, tz=timezone.utc)
                 if subscription.cancelled_at else None
             }
 
@@ -256,10 +256,10 @@ class StripeAPI:
                 "status": subscription.status,
                 "current_period_start": datetime.fromtimestamp(
                     subscription.current_period_start
-                ),
+                , tz=timezone.utc),
                 "current_period_end": datetime.fromtimestamp(
                     subscription.current_period_end
-                ),
+                , tz=timezone.utc),
                 "cancel_at_period_end": subscription.cancel_at_period_end
             }
 

@@ -1,6 +1,6 @@
 """PublishingAgent - Publishes content to various platforms."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 from config.config import settings
@@ -120,7 +120,7 @@ class PublishingAgent(BaseAgent):
         """
         with get_db() as db:
             # Get plans that are ready and scheduled for now or earlier
-            now = datetime.utcnow()
+            now = datetime.now(tz=timezone.utc)
 
             plans = db.query(ContentPlan).filter(
                 ContentPlan.status == "ready",

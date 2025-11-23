@@ -1,6 +1,6 @@
 """AnalyticsAgent - Tracks and analyzes system performance."""
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from src.agents.base_agent import BaseAgent
 from src.database.connection import get_db
@@ -87,7 +87,7 @@ class AnalyticsAgent(BaseAgent):
 
         with get_db() as db:
             # Get agent logs from last 7 days
-            cutoff = datetime.utcnow() - timedelta(days=7)
+            cutoff = datetime.now(tz=timezone.utc) - timedelta(days=7)
 
             logs = db.query(AgentLog).filter(
                 AgentLog.timestamp >= cutoff
@@ -229,7 +229,7 @@ class AnalyticsAgent(BaseAgent):
 ╔══════════════════════════════════════════════════════════╗
 ║          CONTENT CREATOR - ANALYTICS REPORT              ║
 ║          Period: Last {days} days                            ║
-║          Generated: {datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')}        ║
+║          Generated: {datetime.now(tz=timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}        ║
 ╚══════════════════════════════════════════════════════════╝
 
 📊 PERFORMANCE SUMMARY
@@ -318,7 +318,7 @@ End of Report
             Dictionary with KPIs
         """
         with get_db() as db:
-            now = datetime.utcnow()
+            now = datetime.now(tz=timezone.utc)
 
             # Last 24 hours
             last_24h = now - timedelta(hours=24)

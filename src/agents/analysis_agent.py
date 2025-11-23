@@ -2,7 +2,7 @@
 
 import asyncio
 import json
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import pandas as pd
 from anthropic import Anthropic
@@ -88,7 +88,7 @@ class AnalysisAgent(BaseAgent):
         Returns:
             List of asset symbols
         """
-        cutoff_time = datetime.utcnow() - timedelta(hours=self.lookback_hours)
+        cutoff_time = datetime.now(tz=timezone.utc) - timedelta(hours=self.lookback_hours)
 
         with get_db() as db:
             assets = db.query(MarketData.asset).filter(
@@ -140,7 +140,7 @@ class AnalysisAgent(BaseAgent):
 
     async def _get_market_data(self, asset: str) -> pd.DataFrame:
         """Get recent market data for an asset as a DataFrame."""
-        cutoff_time = datetime.utcnow() - timedelta(hours=self.lookback_hours)
+        cutoff_time = datetime.now(tz=timezone.utc) - timedelta(hours=self.lookback_hours)
 
         with get_db() as db:
             data = db.query(MarketData).filter(
@@ -163,7 +163,7 @@ class AnalysisAgent(BaseAgent):
 
     async def _get_news_data(self, asset: str) -> list[NewsArticle]:
         """Get recent news mentioning the asset."""
-        cutoff_time = datetime.utcnow() - timedelta(hours=self.lookback_hours)
+        cutoff_time = datetime.now(tz=timezone.utc) - timedelta(hours=self.lookback_hours)
 
         with get_db() as db:
             news = db.query(NewsArticle).filter(
@@ -181,7 +181,7 @@ class AnalysisAgent(BaseAgent):
 
     async def _get_sentiment_data(self, asset: str) -> list[SentimentData]:
         """Get recent sentiment data for the asset."""
-        cutoff_time = datetime.utcnow() - timedelta(hours=self.lookback_hours)
+        cutoff_time = datetime.now(tz=timezone.utc) - timedelta(hours=self.lookback_hours)
 
         with get_db() as db:
             sentiment = db.query(SentimentData).filter(

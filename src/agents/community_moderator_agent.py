@@ -1,7 +1,7 @@
 """CommunityModeratorAgent - Moderates private community channels."""
 
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 from anthropic import Anthropic
@@ -449,9 +449,9 @@ If no violation:
         Returns:
             Dictionary with moderation stats
         """
-        from datetime import timedelta
+        from datetime import datetime, timezone
 
-        cutoff = datetime.utcnow() - timedelta(days=days)
+        cutoff = datetime.now(tz=timezone.utc) - timedelta(days=days)
 
         with get_db() as db:
             actions = db.query(ModerationAction).filter(

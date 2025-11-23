@@ -1,6 +1,6 @@
 """Metrics collection and tracking utilities."""
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from loguru import logger
@@ -51,7 +51,7 @@ class MetricsCollector:
             "errors": []
         }
 
-        cutoff_time = datetime.utcnow() - timedelta(hours=hours_back)
+        cutoff_time = datetime.now(tz=timezone.utc) - timedelta(hours=hours_back)
 
         with get_db() as db:
             content_list = db.query(PublishedContent).filter(
@@ -186,7 +186,7 @@ class MetricsCollector:
         """
         logger.info(f"Generating performance summary for last {days} days...")
 
-        cutoff = datetime.utcnow() - timedelta(days=days)
+        cutoff = datetime.now(tz=timezone.utc) - timedelta(days=days)
 
         with get_db() as db:
             content_list = db.query(PublishedContent).filter(
@@ -270,7 +270,7 @@ class MetricsCollector:
         Returns:
             List of trending topics
         """
-        cutoff = datetime.utcnow() - timedelta(days=days)
+        cutoff = datetime.now(tz=timezone.utc) - timedelta(days=days)
 
         with get_db() as db:
             # Get high-performing content

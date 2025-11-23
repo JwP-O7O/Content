@@ -1,7 +1,7 @@
 """EngagementAgent - Monitors and engages with the audience."""
 
 import asyncio
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from anthropic import Anthropic
@@ -120,7 +120,7 @@ class EngagementAgent(BaseAgent):
 
     async def _get_recent_published_content(self) -> list[PublishedContent]:
         """Get recently published content from the last 24 hours."""
-        cutoff_time = datetime.utcnow() - timedelta(hours=24)
+        cutoff_time = datetime.now(tz=timezone.utc) - timedelta(hours=24)
 
         with get_db() as db:
             content = db.query(PublishedContent).filter(
@@ -241,15 +241,15 @@ class EngagementAgent(BaseAgent):
         # Note: In practice, fetch actual metrics from Twitter API
         # This would update content.views, content.likes, etc.
         for content in recent_content:
-                # - content.likes
-                # - content.comments
-                # - content.shares
-                # - content.engagement_rate
+            # - content.likes
+            # - content.comments
+            # - content.shares
+            # - content.engagement_rate
 
-                self.log_info(f"Would update metrics for post {content.post_id}")
+            self.log_info(f"Would update metrics for post {content.post_id}")
 
-            # Track highly engaged users
-            results["users_tracked"] = len(self.engaged_users)
+        # Track highly engaged users
+        results["users_tracked"] = len(self.engaged_users)
 
         return results
 
@@ -359,13 +359,13 @@ Reply:"""
         """
         if user_id not in self.engaged_users:
             self.engaged_users[user_id] = {
-                "first_interaction": datetime.utcnow(),
+                "first_interaction": datetime.now(tz=timezone.utc),
                 "interaction_count": 1,
-                "last_interaction": datetime.utcnow()
+                "last_interaction": datetime.now(tz=timezone.utc)
             }
         else:
             self.engaged_users[user_id]["interaction_count"] += 1
-            self.engaged_users[user_id]["last_interaction"] = datetime.utcnow()
+            self.engaged_users[user_id]["last_interaction"] = datetime.now(tz=timezone.utc)
 
         # Note: Would save to an engaged_users table for later use by ConversionAgent (Fase 3)
         # Database implementation pending

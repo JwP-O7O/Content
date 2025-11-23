@@ -1,6 +1,6 @@
 """ExclusiveContentAgent - Publishes exclusive content for paying members."""
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from config.config import settings
 from src.agents.base_agent import BaseAgent
@@ -139,7 +139,7 @@ class ExclusiveContentAgent(BaseAgent):
         """
         with get_db() as db:
             # Get high-confidence insights from last 24 hours
-            cutoff = datetime.utcnow() - timedelta(hours=24)
+            cutoff = datetime.now(tz=timezone.utc) - timedelta(hours=24)
 
             insights = db.query(Insight).filter(
                 Insight.is_published.is_(False),  # Not yet published publicly
@@ -355,7 +355,7 @@ class ExclusiveContentAgent(BaseAgent):
         Returns:
             Dictionary with stats
         """
-        cutoff = datetime.utcnow() - timedelta(days=days)
+        cutoff = datetime.now(tz=timezone.utc) - timedelta(days=days)
 
         with get_db() as db:
             content_items = db.query(ExclusiveContent).filter(

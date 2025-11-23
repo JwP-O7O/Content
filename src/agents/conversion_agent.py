@@ -1,6 +1,6 @@
 """ConversionAgent - Converts highly engaged users to paying members."""
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from anthropic import Anthropic
 
@@ -130,7 +130,7 @@ class ConversionAgent(BaseAgent):
 
             for user in users:
                 # Get user's interactions from last 30 days
-                cutoff = datetime.utcnow() - timedelta(days=30)
+                cutoff = datetime.now(tz=timezone.utc) - timedelta(days=30)
 
                 interactions = db.query(UserInteraction).filter(
                     UserInteraction.user_id == user.id,
@@ -192,7 +192,7 @@ class ConversionAgent(BaseAgent):
 
         with get_db() as db:
             # Find highly engaged FREE users who haven't been DMed recently
-            cooldown_cutoff = datetime.utcnow() - timedelta(days=self.dm_cooldown_days)
+            cooldown_cutoff = datetime.now(tz=timezone.utc) - timedelta(days=self.dm_cooldown_days)
 
             candidates = db.query(CommunityUser).filter(
                 CommunityUser.tier == UserTier.FREE,
@@ -299,7 +299,7 @@ class ConversionAgent(BaseAgent):
 
             # Update user
             user.conversion_dm_sent = True
-            user.conversion_dm_sent_at = datetime.utcnow()
+            user.conversion_dm_sent_at = datetime.now(tz=timezone.utc)
 
             db.commit()
 
@@ -389,7 +389,7 @@ DM:"""
             if user:
                 user.tier = UserTier.BASIC
                 user.subscription_status = "active"
-                user.converted_at = datetime.utcnow()
+                user.converted_at = datetime.now(tz=timezone.utc)
 
                 # Update conversion attempt status
                 attempt = db.query(ConversionAttempt).filter(
@@ -401,7 +401,7 @@ DM:"""
 
                 if attempt:
                     attempt.status = "converted"
-                    attempt.converted_at = datetime.utcnow()
+                    attempt.converted_at = datetime.now(tz=timezone.utc)
 
                 db.commit()
 
@@ -419,7 +419,7 @@ DM:"""
         Returns:
             Dictionary with conversion metrics
         """
-        cutoff = datetime.utcnow() - timedelta(days=days)
+        cutoff = datetime.now(tz=timezone.utc) - timedelta(days=days)
 
         with get_db() as db:
             attempts = db.query(ConversionAttempt).filter(
