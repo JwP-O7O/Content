@@ -1,6 +1,7 @@
 """ImageGenerationAgent - Generates visual content for posts."""
 
 import json
+from pathlib import Path
 from typing import Optional
 
 from src.agents.base_agent import BaseAgent
@@ -28,8 +29,7 @@ class ImageGenerationAgent(BaseAgent):
         self.output_dir = "data/images"
 
         # Ensure output directory exists
-        import os
-        os.makedirs(self.output_dir, exist_ok=True)
+        Path(self.output_dir).mkdir(parents=True, exist_ok=True)
 
     async def execute(self) -> dict:
         """

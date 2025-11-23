@@ -306,7 +306,7 @@ class MetricsCollector:
 
             # Calculate averages and sort
             trending = []
-            for topic_key, data in topic_performance.items():
+            for _topic_key, data in topic_performance.items():
                 data["avg_engagement"] = (
                     data["total_engagement_rate"] / data["count"]
                 )
