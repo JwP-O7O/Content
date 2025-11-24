@@ -3,12 +3,14 @@
 from typing import Dict, List
 from datetime import datetime, timedelta
 import json
+from sqlalchemy import func
+from sqlalchemy.orm import joinedload
 
 from src.agents.base_agent import BaseAgent
 from src.database.connection import get_db
 from src.database.models import (
     PublishedContent, Insight, ConversionAttempt,
-    ExclusiveContent, ContentFormat, InsightType
+    ExclusiveContent, ContentFormat, InsightType, ContentPlan
 )
 from anthropic import Anthropic
 from config.config import settings
@@ -106,57 +108,66 @@ class StrategyTuningAgent(BaseAgent):
         cutoff = datetime.utcnow() - timedelta(days=30)
 
         with get_db() as db:
-            content_items = db.query(PublishedContent).join(
+            # Check if we have enough data
+            content_count = db.query(func.count(PublishedContent.id)).filter(
+                PublishedContent.published_at >= cutoff
+            ).scalar()
+
+            if content_count < self.min_data_points:
+                return {
+                    "insufficient_data": True,
+                    "message": f"Need {self.min_data_points} data points, have {content_count}"
+                }
+
+            # Analyze by format using SQL aggregation (much faster than Python loops)
+            format_stats = db.query(
+                ContentPlan.format,
+                func.count(PublishedContent.id).label('count'),
+                func.avg(
+                    PublishedContent.likes + 
+                    PublishedContent.comments * 2 + 
+                    PublishedContent.shares * 3
+                ).label('avg_engagement')
+            ).join(
                 PublishedContent.content_plan
             ).filter(
                 PublishedContent.published_at >= cutoff
+            ).group_by(
+                ContentPlan.format
             ).all()
 
-            if len(content_items) < self.min_data_points:
-                return {
-                    "insufficient_data": True,
-                    "message": f"Need {self.min_data_points} data points, have {len(content_items)}"
+            format_performance = {
+                stat.format.value: {
+                    "count": stat.count,
+                    "avg_engagement_rate": float(stat.avg_engagement or 0),
+                    "total_engagement": 0,  # Calculated if needed
+                    "best_performing_assets": []
                 }
+                for stat in format_stats
+            }
 
-            # Analyze by format
-            format_performance = {}
+            # Analyze by insight type using SQL aggregation
+            insight_stats = db.query(
+                Insight.type,
+                func.count(PublishedContent.id).label('count'),
+                func.avg(PublishedContent.engagement_rate).label('avg_engagement')
+            ).join(
+                ContentPlan, ContentPlan.insight_id == Insight.id
+            ).join(
+                PublishedContent, PublishedContent.content_plan_id == ContentPlan.id
+            ).filter(
+                PublishedContent.published_at >= cutoff
+            ).group_by(
+                Insight.type
+            ).all()
 
-            for content in content_items:
-                fmt = content.content_plan.format.value
-
-                if fmt not in format_performance:
-                    format_performance[fmt] = {
-                        "count": 0,
-                        "total_engagement": 0,
-                        "avg_engagement_rate": 0,
-                        "best_performing_assets": []
-                    }
-
-                format_performance[fmt]["count"] += 1
-
-                engagement = (
-                    (content.likes or 0) +
-                    (content.comments or 0) * 2 +
-                    (content.shares or 0) * 3
-                )
-
-                format_performance[fmt]["total_engagement"] += engagement
-
-            # Calculate averages
-            for fmt in format_performance:
-                count = format_performance[fmt]["count"]
-
-                if count > 0:
-                    format_performance[fmt]["avg_engagement_rate"] = (
-                        format_performance[fmt]["total_engagement"] / count
-                    )
-
-            # Analyze by insight type
-            insight_performance = {}
-
-            for content in content_items:
-                if not content.content_plan or not content.content_plan.insight:
-                    continue
+            insight_performance = {
+                stat.type.value: {
+                    "count": stat.count,
+                    "avg_engagement_rate": float(stat.avg_engagement or 0)
+                }
+                for stat in insight_stats
+            }
 
                 insight_type = content.content_plan.insight.type.value
 

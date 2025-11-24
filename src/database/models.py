@@ -126,10 +126,14 @@ class PublishedContent(Base):
     """Track all published content."""
 
     __tablename__ = "published_content"
+    __table_args__ = (
+        # Composite index for analytics queries
+        Index('idx_published_content_platform_published', 'platform', 'published_at'),
+    )
 
     id = Column(Integer, primary_key=True)
     content_plan_id = Column(Integer, ForeignKey("content_plans.id"), nullable=False)
-    platform = Column(String(50), nullable=False)
+    platform = Column(String(50), nullable=False, index=True)
     content_text = Column(Text, nullable=False)
     media_urls = Column(JSON)  # URLs to images/videos
     post_url = Column(String(1000))
@@ -141,7 +145,7 @@ class PublishedContent(Base):
     likes = Column(Integer, default=0)
     comments = Column(Integer, default=0)
     shares = Column(Integer, default=0)
-    engagement_rate = Column(Float)
+    engagement_rate = Column(Float, index=True)
 
     # A/B Testing
     ab_test_variant_id = Column(Integer, ForeignKey("ab_test_variants.id"))
@@ -186,6 +190,10 @@ class CommunityUser(Base):
     """Track users across all platforms and their engagement."""
 
     __tablename__ = "community_users"
+    __table_args__ = (
+        # Composite index for conversion queries
+        Index('idx_community_user_tier_engagement', 'tier', 'engagement_score'),
+    )
 
     id = Column(Integer, primary_key=True)
 
@@ -199,17 +207,17 @@ class CommunityUser(Base):
     email = Column(String(255), unique=True, index=True)
 
     # Membership info
-    tier = Column(Enum(UserTier), default=UserTier.FREE, nullable=False)
+    tier = Column(Enum(UserTier), default=UserTier.FREE, nullable=False, index=True)
     subscription_status = Column(String(20), default="inactive")  # active, inactive, cancelled
 
     # Engagement tracking
     total_interactions = Column(Integer, default=0)
-    last_interaction = Column(DateTime)
-    engagement_score = Column(Float, default=0)  # Calculated score 0-100
+    last_interaction = Column(DateTime, index=True)
+    engagement_score = Column(Float, default=0, index=True)  # Calculated score 0-100
 
     # Conversion tracking
     conversion_dm_sent = Column(Boolean, default=False)
-    conversion_dm_sent_at = Column(DateTime)
+    conversion_dm_sent_at = Column(DateTime, index=True)
     conversion_dm_opened = Column(Boolean, default=False)
     conversion_dm_clicked = Column(Boolean, default=False)
 
@@ -267,9 +275,13 @@ class UserInteraction(Base):
     """Log all user interactions for engagement scoring."""
 
     __tablename__ = "user_interactions"
+    __table_args__ = (
+        # Composite index for efficient engagement score queries
+        Index('idx_user_interaction_user_timestamp', 'user_id', 'timestamp'),
+    )
 
     id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("community_users.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("community_users.id"), nullable=False, index=True)
 
     interaction_type = Column(String(50), nullable=False)  # like, reply, retweet, dm_open, etc.
     platform = Column(String(20), nullable=False)  # twitter, telegram, discord

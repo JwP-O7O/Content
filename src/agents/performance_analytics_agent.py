@@ -4,13 +4,15 @@ from typing import Dict, List, Optional
 from datetime import datetime, timedelta
 import json
 from anthropic import Anthropic
+from sqlalchemy.orm import joinedload
+from sqlalchemy import func
 
 from src.agents.base_agent import BaseAgent
 from src.database.connection import get_db
 from src.database.models import (
     PerformanceSnapshot, PublishedContent, Insight,
     CommunityUser, Subscription, UserTier, ConversionAttempt,
-    InsightType, ContentFormat
+    InsightType, ContentFormat, ContentPlan
 )
 from config.config import settings
 
@@ -112,69 +114,79 @@ class PerformanceAnalyticsAgent(BaseAgent):
                 self.log_info(f"{period_type.capitalize()} snapshot already exists")
                 return existing
 
-            # Gather content metrics
-            content_items = db.query(PublishedContent).filter(
+            # Gather content metrics with eager loading to avoid N+1 queries
+            content_items = db.query(PublishedContent).options(
+                joinedload(PublishedContent.content_plan).joinedload(ContentPlan.insight)
+            ).filter(
                 PublishedContent.published_at >= cutoff
             ).all()
 
             content_count = len(content_items)
-            total_impressions = sum(c.views or 0 for c in content_items)
-            total_clicks = sum(
-                (c.likes or 0) + (c.comments or 0) + (c.shares or 0)
-                for c in content_items
-            )
+            
+            # Use SQL aggregations instead of Python loops for better performance
+            metrics = db.query(
+                func.sum(PublishedContent.views).label('total_views'),
+                func.sum(PublishedContent.likes + PublishedContent.comments + PublishedContent.shares).label('total_clicks'),
+                func.avg(PublishedContent.engagement_rate).label('avg_engagement')
+            ).filter(
+                PublishedContent.published_at >= cutoff
+            ).first()
+            
+            total_impressions = int(metrics.total_views or 0)
+            total_clicks = int(metrics.total_clicks or 0)
+            avg_engagement = float(metrics.avg_engagement or 0)
 
-            avg_engagement = 0
-            if content_items:
-                engagement_rates = [c.engagement_rate or 0 for c in content_items]
-                avg_engagement = sum(engagement_rates) / len(engagement_rates)
+            # Find best performing format using SQL aggregation
+            format_stats = db.query(
+                ContentPlan.format,
+                func.avg(PublishedContent.engagement_rate).label('avg_engagement')
+            ).join(
+                PublishedContent.content_plan
+            ).filter(
+                PublishedContent.published_at >= cutoff
+            ).group_by(
+                ContentPlan.format
+            ).order_by(
+                func.avg(PublishedContent.engagement_rate).desc()
+            ).first()
+            
+            top_format = format_stats.format.value if format_stats else None
 
-            # Find best performing format
-            format_performance = {}
-            for content in content_items:
-                fmt = content.content_plan.format.value
-                if fmt not in format_performance:
-                    format_performance[fmt] = []
-                format_performance[fmt].append(content.engagement_rate or 0)
+            # Find best performing asset using SQL aggregation
+            asset_stats = db.query(
+                Insight.asset,
+                func.avg(PublishedContent.engagement_rate).label('avg_engagement')
+            ).join(
+                ContentPlan, ContentPlan.insight_id == Insight.id
+            ).join(
+                PublishedContent, PublishedContent.content_plan_id == ContentPlan.id
+            ).filter(
+                PublishedContent.published_at >= cutoff
+            ).group_by(
+                Insight.asset
+            ).order_by(
+                func.avg(PublishedContent.engagement_rate).desc()
+            ).first()
+            
+            top_asset = asset_stats.asset if asset_stats else None
 
-            top_format = None
-            if format_performance:
-                top_format = max(
-                    format_performance.items(),
-                    key=lambda x: sum(x[1]) / len(x[1])
-                )[0]
-
-            # Find best performing asset
-            asset_performance = {}
-            for content in content_items:
-                if content.content_plan and content.content_plan.insight:
-                    asset = content.content_plan.insight.asset
-                    if asset not in asset_performance:
-                        asset_performance[asset] = []
-                    asset_performance[asset].append(content.engagement_rate or 0)
-
-            top_asset = None
-            if asset_performance:
-                top_asset = max(
-                    asset_performance.items(),
-                    key=lambda x: sum(x[1]) / len(x[1])
-                )[0]
-
-            # Find best performing insight type
-            insight_performance = {}
-            for content in content_items:
-                if content.content_plan and content.content_plan.insight:
-                    itype = content.content_plan.insight.type.value
-                    if itype not in insight_performance:
-                        insight_performance[itype] = []
-                    insight_performance[itype].append(content.engagement_rate or 0)
-
-            top_insight_type = None
-            if insight_performance:
-                top_insight_type = max(
-                    insight_performance.items(),
-                    key=lambda x: sum(x[1]) / len(x[1])
-                )[0]
+            # Find best performing insight type using SQL aggregation
+            insight_stats = db.query(
+                Insight.type,
+                func.avg(PublishedContent.engagement_rate).label('avg_engagement')
+            ).join(
+                ContentPlan, ContentPlan.insight_id == Insight.id
+            ).join(
+                PublishedContent, PublishedContent.content_plan_id == ContentPlan.id
+            ).filter(
+                PublishedContent.published_at >= cutoff
+            ).group_by(
+                Insight.type
+            ).order_by(
+                func.avg(PublishedContent.engagement_rate).desc()
+            ).first()
+            
+            top_insight_type = insight_stats.type.value if insight_stats else None
 
             # Gather audience metrics (would integrate with Twitter API in production)
             new_followers = 0  # Placeholder
