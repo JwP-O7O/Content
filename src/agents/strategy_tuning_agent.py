@@ -164,39 +164,17 @@ class StrategyTuningAgent(BaseAgent):
             insight_performance = {
                 stat.type.value: {
                     "count": stat.count,
-                    "avg_engagement_rate": float(stat.avg_engagement or 0)
+                    "avg_engagement_rate": float(stat.avg_engagement or 0),
+                    "total_engagement": 0,  # Kept for compatibility
+                    "hit_rate": 0  # Placeholder for signal accuracy
                 }
                 for stat in insight_stats
             }
 
-                insight_type = content.content_plan.insight.type.value
-
-                if insight_type not in insight_performance:
-                    insight_performance[insight_type] = {
-                        "count": 0,
-                        "total_engagement": 0,
-                        "avg_engagement_rate": 0,
-                        "hit_rate": 0  # Placeholder for signal accuracy
-                    }
-
-                insight_performance[insight_type]["count"] += 1
-
-                engagement_rate = content.engagement_rate or 0
-                insight_performance[insight_type]["total_engagement"] += engagement_rate
-
-            # Calculate averages
-            for itype in insight_performance:
-                count = insight_performance[itype]["count"]
-
-                if count > 0:
-                    insight_performance[itype]["avg_engagement_rate"] = (
-                        insight_performance[itype]["total_engagement"] / count
-                    )
-
             return {
                 "format_performance": format_performance,
                 "insight_performance": insight_performance,
-                "total_content_analyzed": len(content_items)
+                "total_content_analyzed": content_count
             }
 
     async def _analyze_conversion_performance(self) -> Dict:
