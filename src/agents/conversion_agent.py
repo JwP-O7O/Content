@@ -4,6 +4,8 @@ import asyncio
 from typing import Dict, List
 from datetime import datetime, timedelta
 from anthropic import Anthropic
+from sqlalchemy import func
+from sqlalchemy.orm import joinedload
 
 from src.agents.base_agent import BaseAgent
 from src.database.connection import get_db
@@ -24,6 +26,16 @@ class ConversionAgent(BaseAgent):
     - Track conversion attempts and outcomes
     - Create payment links with discount codes
     """
+
+    # Engagement scoring weights (configurable)
+    ENGAGEMENT_WEIGHTS = {
+        'like': 1,
+        'reply': 3,
+        'retweet': 2,
+        'quote': 4,
+        'dm_open': 5,
+        'dm_click': 10
+    }
 
     def __init__(self):
         """Initialize the ConversionAgent."""
@@ -126,26 +138,59 @@ class ConversionAgent(BaseAgent):
         """Update engagement scores for all users based on their interactions."""
         self.log_info("Updating engagement scores...")
 
+        cutoff = datetime.utcnow() - timedelta(days=30)
+
         with get_db() as db:
+            # Efficient: Use SQL aggregation to calculate scores in one query
+            # This replaces the N+1 query pattern with a single query
+            interaction_stats = db.query(
+                UserInteraction.user_id,
+                func.count(UserInteraction.id).label('interaction_count'),
+                func.max(UserInteraction.timestamp).label('last_interaction'),
+                func.sum(
+                    UserInteraction.engagement_value * 
+                    func.case(
+                        (UserInteraction.interaction_type == 'like', self.ENGAGEMENT_WEIGHTS['like']),
+                        (UserInteraction.interaction_type == 'reply', self.ENGAGEMENT_WEIGHTS['reply']),
+                        (UserInteraction.interaction_type == 'retweet', self.ENGAGEMENT_WEIGHTS['retweet']),
+                        (UserInteraction.interaction_type == 'quote', self.ENGAGEMENT_WEIGHTS['quote']),
+                        (UserInteraction.interaction_type == 'dm_open', self.ENGAGEMENT_WEIGHTS['dm_open']),
+                        (UserInteraction.interaction_type == 'dm_click', self.ENGAGEMENT_WEIGHTS['dm_click']),
+                        else_=1
+                    )
+                ).label('weighted_score')
+            ).filter(
+                UserInteraction.timestamp >= cutoff
+            ).group_by(
+                UserInteraction.user_id
+            ).all()
+
+            # Create a lookup dict for O(1) access
+            stats_by_user = {
+                stat.user_id: {
+                    'count': stat.interaction_count,
+                    'last_interaction': stat.last_interaction,
+                    'weighted_score': stat.weighted_score or 0
+                }
+                for stat in interaction_stats
+            }
+
+            # Update users in batch
             users = db.query(CommunityUser).all()
 
             for user in users:
-                # Get user's interactions from last 30 days
-                cutoff = datetime.utcnow() - timedelta(days=30)
+                stats = stats_by_user.get(user.id, {
+                    'count': 0,
+                    'last_interaction': None,
+                    'weighted_score': 0
+                })
 
-                interactions = db.query(UserInteraction).filter(
-                    UserInteraction.user_id == user.id,
-                    UserInteraction.timestamp >= cutoff
-                ).all()
-
-                # Calculate weighted engagement score
-                score = self._calculate_engagement_score(interactions)
-
-                user.engagement_score = score
-                user.total_interactions = len(interactions)
-
-                if interactions:
-                    user.last_interaction = max(i.timestamp for i in interactions)
+                # Normalize weighted score to 0-100 scale
+                score = min(100, (stats['weighted_score'] / 50) * 100)
+                
+                user.engagement_score = round(score, 2)
+                user.total_interactions = stats['count']
+                user.last_interaction = stats['last_interaction']
 
             db.commit()
 

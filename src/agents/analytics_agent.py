@@ -2,6 +2,7 @@
 
 from typing import Dict, List
 from datetime import datetime, timedelta
+from sqlalchemy import func
 
 from src.agents.base_agent import BaseAgent
 from src.database.connection import get_db
@@ -89,53 +90,42 @@ class AnalyticsAgent(BaseAgent):
         """
         self.log_info("Analyzing agent performance...")
 
-        with get_db() as db:
-            # Get agent logs from last 7 days
-            cutoff = datetime.utcnow() - timedelta(days=7)
+        cutoff = datetime.utcnow() - timedelta(days=7)
 
-            logs = db.query(AgentLog).filter(
+        with get_db() as db:
+            # Use SQL aggregation instead of loading all logs into memory
+            # This is much more efficient for large datasets
+            agent_stats_query = db.query(
+                AgentLog.agent_name,
+                func.count(AgentLog.id).label('total_runs'),
+                func.sum(func.case((AgentLog.status == 'success', 1), else_=0)).label('successful_runs'),
+                func.sum(func.case((AgentLog.status == 'error', 1), else_=0)).label('failed_runs'),
+                func.avg(AgentLog.execution_time).label('avg_execution_time'),
+                func.sum(AgentLog.execution_time).label('total_execution_time')
+            ).filter(
                 AgentLog.timestamp >= cutoff
+            ).group_by(
+                AgentLog.agent_name
             ).all()
 
-            if not logs:
+            if not agent_stats_query:
                 return {"message": "No agent activity logged"}
 
-            # Aggregate by agent
+            # Build stats dictionary from aggregated results
             agent_stats = {}
-
-            for log in logs:
-                agent_name = log.agent_name
-
-                if agent_name not in agent_stats:
-                    agent_stats[agent_name] = {
-                        "total_runs": 0,
-                        "successful_runs": 0,
-                        "failed_runs": 0,
-                        "total_execution_time": 0,
-                        "avg_execution_time": 0,
-                        "success_rate": 0
-                    }
-
-                agent_stats[agent_name]["total_runs"] += 1
-
-                if log.status == "success":
-                    agent_stats[agent_name]["successful_runs"] += 1
-                elif log.status == "error":
-                    agent_stats[agent_name]["failed_runs"] += 1
-
-                if log.execution_time:
-                    agent_stats[agent_name]["total_execution_time"] += log.execution_time
-
-            # Calculate averages and rates
-            for agent_name in agent_stats:
-                stats = agent_stats[agent_name]
-                total_runs = stats["total_runs"]
-
-                if total_runs > 0:
-                    stats["success_rate"] = stats["successful_runs"] / total_runs
-                    stats["avg_execution_time"] = (
-                        stats["total_execution_time"] / total_runs
-                    )
+            
+            for stat in agent_stats_query:
+                agent_name = stat.agent_name
+                total_runs = stat.total_runs
+                
+                agent_stats[agent_name] = {
+                    "total_runs": total_runs,
+                    "successful_runs": stat.successful_runs,
+                    "failed_runs": stat.failed_runs,
+                    "total_execution_time": float(stat.total_execution_time or 0),
+                    "avg_execution_time": float(stat.avg_execution_time or 0),
+                    "success_rate": stat.successful_runs / total_runs if total_runs > 0 else 0
+                }
 
             return agent_stats
 

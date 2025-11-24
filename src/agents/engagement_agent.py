@@ -122,10 +122,14 @@ class EngagementAgent(BaseAgent):
         cutoff_time = datetime.utcnow() - timedelta(hours=24)
 
         with get_db() as db:
+            # Add limit to prevent loading too much data
+            # Sort by published_at descending to get most recent first
             content = db.query(PublishedContent).filter(
                 PublishedContent.platform == "twitter",
                 PublishedContent.published_at >= cutoff_time
-            ).all()
+            ).order_by(
+                PublishedContent.published_at.desc()
+            ).limit(100).all()  # Limit to 100 most recent posts
 
             return content
 
