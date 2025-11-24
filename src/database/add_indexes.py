@@ -46,7 +46,14 @@ def add_performance_indexes():
                 index.create(conn, checkfirst=True)
                 print(f"✓ Created index: {index.name}")
             except Exception as e:
-                print(f"✗ Error creating index {index.name}: {e}")
+                # Check if it's an "already exists" error (can be ignored)
+                error_msg = str(e).lower()
+                if 'already exists' in error_msg or 'duplicate' in error_msg:
+                    print(f"⚠ Index {index.name} already exists, skipping...")
+                else:
+                    print(f"✗ Error creating index {index.name}: {e}")
+                    print(f"   Error type: {type(e).__name__}")
+                    # Continue with other indexes even if one fails
     
     print("\nIndexes created successfully!")
 

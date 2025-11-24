@@ -27,6 +27,16 @@ class ConversionAgent(BaseAgent):
     - Create payment links with discount codes
     """
 
+    # Engagement scoring weights (configurable)
+    ENGAGEMENT_WEIGHTS = {
+        'like': 1,
+        'reply': 3,
+        'retweet': 2,
+        'quote': 4,
+        'dm_open': 5,
+        'dm_click': 10
+    }
+
     def __init__(self):
         """Initialize the ConversionAgent."""
         super().__init__("ConversionAgent")
@@ -140,12 +150,12 @@ class ConversionAgent(BaseAgent):
                 func.sum(
                     UserInteraction.engagement_value * 
                     func.case(
-                        (UserInteraction.interaction_type == 'like', 1),
-                        (UserInteraction.interaction_type == 'reply', 3),
-                        (UserInteraction.interaction_type == 'retweet', 2),
-                        (UserInteraction.interaction_type == 'quote', 4),
-                        (UserInteraction.interaction_type == 'dm_open', 5),
-                        (UserInteraction.interaction_type == 'dm_click', 10),
+                        (UserInteraction.interaction_type == 'like', self.ENGAGEMENT_WEIGHTS['like']),
+                        (UserInteraction.interaction_type == 'reply', self.ENGAGEMENT_WEIGHTS['reply']),
+                        (UserInteraction.interaction_type == 'retweet', self.ENGAGEMENT_WEIGHTS['retweet']),
+                        (UserInteraction.interaction_type == 'quote', self.ENGAGEMENT_WEIGHTS['quote']),
+                        (UserInteraction.interaction_type == 'dm_open', self.ENGAGEMENT_WEIGHTS['dm_open']),
+                        (UserInteraction.interaction_type == 'dm_click', self.ENGAGEMENT_WEIGHTS['dm_click']),
                         else_=1
                     )
                 ).label('weighted_score')

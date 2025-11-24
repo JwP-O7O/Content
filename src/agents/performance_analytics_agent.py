@@ -126,7 +126,11 @@ class PerformanceAnalyticsAgent(BaseAgent):
             # Use SQL aggregations instead of Python loops for better performance
             metrics = db.query(
                 func.sum(PublishedContent.views).label('total_views'),
-                func.sum(PublishedContent.likes + PublishedContent.comments + PublishedContent.shares).label('total_clicks'),
+                func.sum(
+                    func.coalesce(PublishedContent.likes, 0) + 
+                    func.coalesce(PublishedContent.comments, 0) + 
+                    func.coalesce(PublishedContent.shares, 0)
+                ).label('total_clicks'),
                 func.avg(PublishedContent.engagement_rate).label('avg_engagement')
             ).filter(
                 PublishedContent.published_at >= cutoff
