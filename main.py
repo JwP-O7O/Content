@@ -1,9 +1,7 @@
-"""Main entry point for the Content Creator system."""
-
 import asyncio
 import sys
 from loguru import logger
-
+from src.api import app as api_app  # Import the Flask app
 from src.utils.logger import setup_logger
 from src.orchestrator import AgentOrchestrator
 from src.scheduler import ContentCreatorScheduler
@@ -358,11 +356,23 @@ async def run_scheduled_mode():
         logger.info("\nShutting down...")
         scheduler.stop()
 
+def run_api_mode():
+    """Run the system in API mode using Flask."""
+    setup_logger()
+    print_banner()
+    logger.info("Starting Content Creator API server...")
+    api_app.run(host='0.0.0.0', port=5001)
 
 def main():
     """Main entry point."""
-    if len(sys.argv) > 1 and sys.argv[1] == "--scheduled":
-        asyncio.run(run_scheduled_mode())
+    if len(sys.argv) > 1:
+        if sys.argv[1] == "--scheduled":
+            asyncio.run(run_scheduled_mode())
+        elif sys.argv[1] == "--api":
+            run_api_mode()
+        else:
+            print("Invalid argument. Use --scheduled or --api.")
+            sys.exit(1)
     else:
         asyncio.run(run_interactive_mode())
 

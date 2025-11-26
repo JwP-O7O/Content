@@ -1,3 +1,6 @@
+# API
+Flask==2.3.3
+
 # Core Dependencies
 python-dotenv==1.0.0
 pydantic==2.5.0
