@@ -46,7 +46,7 @@ def patch_get_db(mock_db_session):
 @pytest.fixture
 def mock_llm_client():
     """Fixture for a mocked LLM client."""
-    with patch('src.agents.content_creation_agent.llm_client', new_callable=MagicMock) as mock_client:
+    with patch('src.agents.content_creation_agent.llm_client', new_callable=AsyncMock) as mock_client:
         mock_client.generate.return_value = "Generated test content for a tweet about $BTC."
         yield mock_client
 
