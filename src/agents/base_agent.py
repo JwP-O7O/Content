@@ -6,8 +6,8 @@ from typing import Any, Dict, Optional
 import time
 from loguru import logger
 
-from database.connection import get_db
-from database.models import AgentLog
+from src.database.connection import get_db
+from src.database.models import AgentLog
 
 
 class BaseAgent(ABC):

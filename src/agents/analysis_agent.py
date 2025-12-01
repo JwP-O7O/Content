@@ -15,6 +15,7 @@ from src.database.models import (
 )
 from src.api_integrations.exchange_api import ExchangeAPI
 from config.config import settings
+from src.utils.llm_client import llm_client
 
 
 class AnalysisAgent(BaseAgent):
@@ -32,8 +33,8 @@ class AnalysisAgent(BaseAgent):
         """Initialize the AnalysisAgent."""
         super().__init__("AnalysisAgent")
 
-        # Initialize LLM client
-        self.llm_client = Anthropic(api_key=settings.anthropic_api_key)
+        # Initialize LLM client (Use the shared client with failover)
+        self.llm_client = llm_client
         self.exchange_api = ExchangeAPI()
 
         # Analysis parameters
@@ -410,13 +411,11 @@ Provide a concise, professional analysis (2-3 sentences) explaining:
 
 Be factual and avoid speculation. Focus on what the data shows."""
 
-            message = self.llm_client.messages.create(
-                model="claude-3-5-sonnet-20241022",
-                max_tokens=300,
-                messages=[{"role": "user", "content": prompt}]
+            return await self.llm_client.generate(
+                prompt=prompt,
+                model="gemini", # Default to Gemini but client handles fallback
+                max_tokens=300
             )
-
-            return message.content[0].text
 
         except Exception as e:
             self.log_error(f"LLM analysis error: {e}")
