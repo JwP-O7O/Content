@@ -495,3 +495,24 @@ class PerformanceSnapshot(Base):
     insight_accuracy_rate = Column(Float, default=0.0)  # How often high-confidence insights performed well
 
     created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class APIKey(Base):
+    """API keys for external access to data."""
+
+    __tablename__ = "api_keys"
+
+    id = Column(Integer, primary_key=True)
+    key_hash = Column(String(128), unique=True, nullable=False, index=True)
+    owner_name = Column(String(100), nullable=False)
+    owner_email = Column(String(255), index=True)
+
+    # Limits
+    rate_limit_per_minute = Column(Integer, default=60)
+    is_active = Column(Boolean, default=True)
+
+    # Usage tracking
+    request_count = Column(Integer, default=0)
+    last_used_at = Column(DateTime)
+
+    created_at = Column(DateTime, default=datetime.utcnow)

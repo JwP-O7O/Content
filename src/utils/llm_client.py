@@ -6,7 +6,18 @@ from loguru import logger
 from anthropic import Anthropic
 import google.generativeai as genai
 
-from config.config import settings
+from pydantic_settings import BaseSettings
+
+class Settings(BaseSettings):
+    anthropic_api_key: str = ""
+    google_api_key: str = ""
+    google_api_key_backup: str = ""
+    
+    class Config:
+        env_file = ".env"
+        extra = "ignore"
+
+settings = Settings()
 
 
 class LLMClientWithFailover:

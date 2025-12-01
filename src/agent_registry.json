@@ -1,0 +1,176 @@
+[
+  {
+    "name": "ContentStrategistAgent",
+    "file_path": "agents/content_strategist_agent.py",
+    "description": "Executes the content strategy formulation based on market insights, audience analytics, and project phase.",
+    "module": "agents.content_strategist_agent"
+  },
+  {
+    "name": "MarketScannerAgent",
+    "file_path": "agents/market_scanner_agent.py",
+    "description": "MarketScannerAgent - Continuously scans markets for data.",
+    "module": "agents.market_scanner_agent"
+  },
+  {
+    "name": "AnalysisAgent",
+    "file_path": "agents/analysis_agent.py",
+    "description": "AnalysisAgent - Analyzes market data and generates insights.",
+    "module": "agents.analysis_agent"
+  },
+  {
+    "name": "SystemArchitectAgent",
+    "file_path": "agents/system_architect_agent.py",
+    "description": "SystemArchitectAgent - Analyzes documentation and builds specialized sub-agents.",
+    "module": "agents.system_architect_agent"
+  },
+  {
+    "name": "SystemOrchestratorAgent",
+    "file_path": "agents/system_orchestrator_agent.py",
+    "description": "No description.",
+    "module": "agents.system_orchestrator_agent"
+  },
+  {
+    "name": "ContentCreationAgent",
+    "file_path": "agents/content_creation_agent.py",
+    "description": "ContentCreationAgent - Generates content based on insights and content plans.",
+    "module": "agents.content_creation_agent"
+  },
+  {
+    "name": "PublishingAgent",
+    "file_path": "agents/publishing_agent.py",
+    "description": "PublishingAgent - Publishes content to various platforms.",
+    "module": "agents.publishing_agent"
+  },
+  {
+    "name": "EngagementAgent",
+    "file_path": "agents/engagement_agent.py",
+    "description": "No description.",
+    "module": "agents.engagement_agent"
+  },
+  {
+    "name": "ImageGenerationAgent",
+    "file_path": "agents/image_generation_agent.py",
+    "description": "ImageGenerationAgent - Generates visual content for posts.",
+    "module": "agents.image_generation_agent"
+  },
+  {
+    "name": "AnalyticsAgent",
+    "file_path": "agents/analytics_agent.py",
+    "description": "AnalyticsAgent - Tracks and analyzes system performance.",
+    "module": "agents.analytics_agent"
+  },
+  {
+    "name": "ConversionAgent",
+    "file_path": "agents/conversion_agent.py",
+    "description": "ConversionAgent - Converts highly engaged users to paying members.",
+    "module": "agents.conversion_agent"
+  },
+  {
+    "name": "OnboardingAgent",
+    "file_path": "agents/onboarding_agent.py",
+    "description": "OnboardingAgent - Welcomes and onboards new paying members.",
+    "module": "agents.onboarding_agent"
+  },
+  {
+    "name": "ExclusiveContentAgent",
+    "file_path": "agents/exclusive_content_agent.py",
+    "description": "ExclusiveContentAgent - Publishes exclusive content for paying members.",
+    "module": "agents.exclusive_content_agent"
+  },
+  {
+    "name": "CommunityModeratorAgent",
+    "file_path": "agents/community_moderator_agent.py",
+    "description": "CommunityModeratorAgent - Moderates private community channels.",
+    "module": "agents.community_moderator_agent"
+  },
+  {
+    "name": "StrategyTuningAgent",
+    "file_path": "agents/strategy_tuning_agent.py",
+    "description": "StrategyTuningAgent - Automatically optimizes system strategies based on performance.",
+    "module": "agents.strategy_tuning_agent"
+  },
+  {
+    "name": "ABTestingAgent",
+    "file_path": "agents/ab_testing_agent.py",
+    "description": "ABTestingAgent - Automatically tests content variations for optimization.",
+    "module": "agents.ab_testing_agent"
+  },
+  {
+    "name": "PerformanceAnalyticsAgent",
+    "file_path": "agents/performance_analytics_agent.py",
+    "description": "PerformanceAnalyticsAgent - Advanced analytics and performance tracking.",
+    "module": "agents.performance_analytics_agent"
+  },
+  {
+    "name": "FeedbackLoopCoordinator",
+    "file_path": "agents/feedback_loop_coordinator.py",
+    "description": "FeedbackLoopCoordinator - Coordinates the continuous learning and optimization system.",
+    "module": "agents.feedback_loop_coordinator"
+  },
+  {
+    "name": "MarketDataCollectorAgent",
+    "file_path": "agents/market_data_collector_agent.py",
+    "description": "Executes the MarketDataCollectorAgent's task, which involves conceptualizing",
+    "module": "agents.market_data_collector_agent"
+  },
+  {
+    "name": "MarketInsightAgent",
+    "file_path": "agents/market_insight_agent.py",
+    "description": "As a highly specialized AI-powered Crypto Market Insight Analyst, my persona is that of a lead researcher operating at the intersection of quantitative finance and advanced artificial intelligence. My core objective is to distill complex raw market data into precise, actionable intelligence regarding cryptocurrency assets and overarching market dynamics. This intelligence will inform strategic content creation and community management within the broader autonomous agent system.",
+    "module": "agents.market_insight_agent"
+  },
+  {
+    "name": "GenerativeContentAgent",
+    "file_path": "agents/generative_content_agent.py",
+    "description": "Executes the GenerativeContentAgent to create high-quality, engaging, and contextually relevant",
+    "module": "agents.generative_content_agent"
+  },
+  {
+    "name": "VisualContentAgent",
+    "file_path": "agents/visual_content_agent.py",
+    "description": "Executes the VisualContentAgent's task to generate detailed visual content specifications",
+    "module": "agents.visual_content_agent"
+  },
+  {
+    "name": "SocialPublishingAgent",
+    "file_path": "agents/social_publishing_agent.py",
+    "description": "Executes the content publishing strategy formulation for the SocialPublishingAgent.",
+    "module": "agents.social_publishing_agent"
+  },
+  {
+    "name": "CommunityModerationAgent",
+    "file_path": "agents/community_moderation_agent.py",
+    "description": "Executes the community moderation task using the LLM, analyzing provided content",
+    "module": "agents.community_moderation_agent"
+  },
+  {
+    "name": "AudienceAnalyticsAgent",
+    "file_path": "agents/audience_analytics_agent.py",
+    "description": "Initializes the AudienceAnalyticsAgent.",
+    "module": "agents.audience_analytics_agent"
+  },
+  {
+    "name": "UserValueAgent",
+    "file_path": "agents/user_value_agent.py",
+    "description": "Executes the UserValueAgent's core logic: identifying high-value users",
+    "module": "agents.user_value_agent"
+  },
+  {
+    "name": "ExperimentationAgent",
+    "file_path": "agents/experimentation_agent.py",
+    "description": "Executes the ExperimentationAgent's task, designing an experiment based on the given description and context.",
+    "module": "agents.experimentation_agent"
+  },
+  {
+    "name": "InsightGenerationAgent",
+    "file_path": "agents/insight_generation_agent.py",
+    "description": "Executes the InsightGenerationAgent's task, performing deep-dive analysis",
+    "module": "agents.insight_generation_agent"
+  },
+  {
+    "name": "StrategyOptimizerAgent",
+    "file_path": "agents/strategy_optimizer_agent.py",
+    "description": "Executes the strategy optimization process by analyzing insights and experiment results",
+    "module": "agents.strategy_optimizer_agent"
+  }
+]

@@ -1,0 +1,74 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: content-creator-db
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: content-creator-app
+    environment:
+      DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      GOOGLE_API_KEY: ${GOOGLE_API_KEY}
+      # ... voeg hier alle andere omgevingsvariabelen toe die nodig zijn voor de applicatie
+      # Voor nu, vul de belangrijkste in die ik zie in config.py en .env.example
+      TWITTER_API_KEY: ${TWITTER_API_KEY}
+      TWITTER_API_SECRET: ${TWITTER_API_SECRET}
+      TWITTER_ACCESS_TOKEN: ${TWITTER_ACCESS_TOKEN}
+      TWITTER_ACCESS_TOKEN_SECRET: ${TWITTER_ACCESS_TOKEN_SECRET}
+      TWITTER_BEARER_TOKEN: ${TWITTER_BEARER_TOKEN}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      TELEGRAM_CHANNEL_ID: ${TELEGRAM_CHANNEL_ID}
+      HUMAN_IN_THE_LOOP: ${HUMAN_IN_THE_LOOP}
+      CONTENT_PERSONALITY: ${CONTENT_PERSONALITY}
+      LOG_LEVEL: ${LOG_LEVEL}
+      STRIPE_API_KEY: ${STRIPE_API_KEY}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET}
+      STRIPE_PRICE_ID_BASIC: ${STRIPE_PRICE_ID_BASIC}
+      STRIPE_PRICE_ID_PREMIUM: ${STRIPE_PRICE_ID_PREMIUM}
+      STRIPE_PRICE_ID_VIP: ${STRIPE_PRICE_ID_VIP}
+      DISCORD_BOT_TOKEN: ${DISCORD_BOT_TOKEN}
+      DISCORD_GUILD_ID: ${DISCORD_GUILD_ID}
+      DISCORD_ROLE_ID_BASIC: ${DISCORD_ROLE_ID_BASIC}
+      DISCORD_ROLE_ID_PREMIUM: ${DISCORD_ROLE_ID_PREMIUM}
+      DISCORD_ROLE_ID_VIP: ${DISCORD_ROLE_ID_VIP}
+      CONVERSION_MIN_ENGAGEMENT_SCORE: ${CONVERSION_MIN_ENGAGEMENT_SCORE}
+      CONVERSION_DISCOUNT_PERCENTAGE: ${CONVERSION_DISCOUNT_PERCENTAGE}
+      CONVERSION_DM_COOLDOWN_DAYS: ${CONVERSION_DM_COOLDOWN_DAYS}
+      AB_TESTING_MIN_SAMPLE_SIZE: ${AB_TESTING_MIN_SAMPLE_SIZE}
+      AB_TESTING_CONFIDENCE_THRESHOLD: ${AB_TESTING_CONFIDENCE_THRESHOLD}
+      AB_TESTING_MAX_ACTIVE_TESTS: ${AB_TESTING_MAX_ACTIVE_TESTS}
+      AB_TESTING_TEST_DURATION_DAYS: ${AB_TESTING_TEST_DURATION_DAYS}
+      STRATEGY_TUNING_MIN_DATA_POINTS: ${STRATEGY_TUNING_MIN_DATA_POINTS}
+      STRATEGY_TUNING_CONFIDENCE_LEVEL: ${STRATEGY_TUNING_CONFIDENCE_LEVEL}
+      STRATEGY_TUNING_MAX_ADJUSTMENTS_PER_RUN: ${STRATEGY_TUNING_MAX_ADJUSTMENTS_PER_RUN}
+      PERFORMANCE_ANALYTICS_SNAPSHOT_RETENTION_DAYS: ${PERFORMANCE_ANALYTICS_SNAPSHOT_RETENTION_DAYS}
+      FEEDBACK_LOOP_OPTIMIZATION_CYCLE_HOURS: ${FEEDBACK_LOOP_OPTIMIZATION_CYCLE_HOURS}
+      FEEDBACK_LOOP_MIN_CONFIDENCE_FOR_CHANGES: ${FEEDBACK_LOOP_MIN_CONFIDENCE_FOR_CHANGES}
+
+    depends_on:
+      - db
+    volumes:
+      - .:/app  # Mount current directory to /app for live code changes (dev)
+    # Command to run the app. First initialize DB, then run main.py in scheduled mode.
+    entrypoint: ["/bin/bash", "-c"]
+    command: >
+      "python init_db.py && python main.py --scheduled"
+    restart: unless-stopped
+
+volumes:
+  db_data:
+
