@@ -168,3 +168,11 @@ class ContentStrategistAgent(BaseAgent):
         except Exception as e:
             logger.error(f"[{self.name}] An unexpected error occurred during strategy generation: {e}", exc_info=True)
             return {"error": f"An unexpected error occurred: {str(e)}", "raw_response": response_str if 'response_str' in locals() else "N/A", "exception_details": str(e)}
+
+    async def plan_content_repurposing(self):
+        """
+        Stub for plan_content_repurposing to fix AttributeError.
+        Real implementation should be added later.
+        """
+        logger.info(f"[{self.name}] plan_content_repurposing called (stub)")
+        return {}

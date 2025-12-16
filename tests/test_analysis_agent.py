@@ -37,9 +37,37 @@ def mock_db_session():
     try:
         # Pre-populate with some data only if pandas is available
         if not pandas_not_installed:
-            db.add(MarketData(asset="BTC", price=50000, volume_24h=1000, timestamp=datetime.utcnow()))
-            db.add(NewsArticle(title="Big news for BTC", url="http://test.com/1", summary="Positive summary for BTC", published_at=datetime.utcnow()))
-            db.add(SentimentData(asset="BTC", volume=100, timestamp=datetime.utcnow()))
+            # Add enough MarketData for technical analysis (needs >= 10 points)
+            base_time = datetime.utcnow()
+            for i in range(20):
+                # Create a breakout pattern
+                price = 50000 + (i * 100)
+                volume = 1000
+                change = 0.5
+
+                # Make the last few points significant for breakout
+                if i >= 18:
+                    price = 50000 + (i * 500) # Jump
+                    change = 6.0
+                    volume = 3000 # High volume
+
+                db.add(MarketData(
+                    asset="BTC",
+                    price=price,
+                    volume_24h=volume,
+                    price_change_24h=change,
+                    timestamp=base_time - timedelta(hours=20-i)
+                ))
+
+            # Add enough NewsArticle for news impact analysis (needs >= 3 articles)
+            db.add(NewsArticle(title="Big news for BTC 1", url="http://test.com/1", summary="Positive summary for BTC", published_at=base_time))
+            db.add(NewsArticle(title="Big news for BTC 2", url="http://test.com/2", summary="Positive summary for BTC", published_at=base_time))
+            db.add(NewsArticle(title="Big news for BTC 3", url="http://test.com/3", summary="Positive summary for BTC", published_at=base_time))
+
+            # Add enough SentimentData for sentiment analysis (needs >= 2 points)
+            db.add(SentimentData(asset="BTC", volume=100, platform="twitter", timestamp=base_time - timedelta(hours=2)))
+            db.add(SentimentData(asset="BTC", volume=200, platform="twitter", timestamp=base_time)) # Increase
+
             db.commit()
         yield db
     finally:
@@ -62,10 +90,14 @@ class TestAnalysisAgent:
     @pytest.fixture
     def agent(self):
         """Fixture for an AnalysisAgent instance."""
-        with patch('src.agents.analysis_agent.Anthropic', new_callable=MagicMock) as MockAnthropic:
-            MockAnthropic.return_value.messages.create = AsyncMock(return_value=MagicMock(content=[MagicMock(text="LLM analysis text")]))
+        # Use MagicMock for the entire llm_client
+        mock_llm_client = MagicMock()
+        mock_llm_client.generate = AsyncMock(return_value="LLM analysis text")
+
+        with patch('src.agents.analysis_agent.llm_client', mock_llm_client):
             agent = AnalysisAgent()
-            agent.llm_client = MockAnthropic.return_value
+            # Manually inject the mocked client as the agent initializes its own
+            agent.llm_client = mock_llm_client
             return agent
 
     @pytest.mark.asyncio
