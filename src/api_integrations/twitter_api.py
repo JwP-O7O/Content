@@ -1,8 +1,12 @@
 """Twitter/X API integration."""
 
-import tweepy
 from typing import List, Dict, Optional
 from loguru import logger
+
+try:
+    import tweepy
+except ImportError:  # pragma: no cover - optional dependency for tests
+    tweepy = None
 
 
 class TwitterAPI:
@@ -28,6 +32,8 @@ class TwitterAPI:
             access_token_secret: Access token secret
             bearer_token: Bearer token for API v2
         """
+        if tweepy is None:
+            raise ImportError("tweepy is required for TwitterAPI but is not installed")
         # Initialize v1.1 API (for posting)
         auth = tweepy.OAuthHandler(api_key, api_secret)
         auth.set_access_token(access_token, access_token_secret)
