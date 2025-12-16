@@ -55,13 +55,10 @@ class BaseAgent(ABC):
                 action=action,
                 status="success",
                 details={"result_summary": str(result)[:500]},
-                execution_time=execution_time
+                execution_time=execution_time,
             )
 
-            logger.info(
-                f"{self.name} completed: {action} "
-                f"(took {execution_time:.2f}s)"
-            )
+            logger.info(f"{self.name} completed: {action} " f"(took {execution_time:.2f}s)")
 
             return result
 
@@ -74,12 +71,11 @@ class BaseAgent(ABC):
                 action=action,
                 status="error",
                 error_message=error_message,
-                execution_time=execution_time
+                execution_time=execution_time,
             )
 
             logger.error(
-                f"{self.name} failed: {action} - {error_message} "
-                f"(took {execution_time:.2f}s)"
+                f"{self.name} failed: {action} - {error_message} " f"(took {execution_time:.2f}s)"
             )
 
             raise
@@ -90,7 +86,7 @@ class BaseAgent(ABC):
         status: str,
         details: Optional[dict] = None,
         error_message: Optional[str] = None,
-        execution_time: Optional[float] = None
+        execution_time: Optional[float] = None,
     ):
         """
         Log agent activity to the database.
@@ -110,7 +106,7 @@ class BaseAgent(ABC):
                     status=status,
                     details=details or {},
                     error_message=error_message,
-                    execution_time=execution_time
+                    execution_time=execution_time,
                 )
                 db.add(log_entry)
                 db.commit()

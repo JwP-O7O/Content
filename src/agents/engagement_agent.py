@@ -37,7 +37,7 @@ class EngagementAgent(BaseAgent):
                 api_secret=settings.twitter_api_secret,
                 access_token=settings.twitter_access_token,
                 access_token_secret=settings.twitter_access_token_secret,
-                bearer_token=settings.twitter_bearer_token
+                bearer_token=settings.twitter_bearer_token,
             )
         except Exception as e:
             self.log_warning(f"Twitter API not configured: {e}")
@@ -70,7 +70,7 @@ class EngagementAgent(BaseAgent):
             "likes_given": 0,
             "retweets": 0,
             "engaged_users_tracked": 0,
-            "errors": []
+            "errors": [],
         }
 
         if not self.twitter_api:
@@ -86,7 +86,7 @@ class EngagementAgent(BaseAgent):
                 self._monitor_and_respond_to_mentions(),
                 self._engage_with_replies(recent_content),
                 self._find_and_retweet_influential_content(),
-                self._update_engagement_metrics(recent_content)
+                self._update_engagement_metrics(recent_content),
             ]
 
             task_results = await asyncio.gather(*tasks, return_exceptions=True)
@@ -122,11 +122,14 @@ class EngagementAgent(BaseAgent):
         cutoff_time = datetime.now(tz=timezone.utc) - timedelta(hours=24)
 
         with get_db() as db:
-            return db.query(PublishedContent).filter(
-                PublishedContent.platform == "twitter",
-                PublishedContent.published_at >= cutoff_time
-            ).all()
-
+            return (
+                db.query(PublishedContent)
+                .filter(
+                    PublishedContent.platform == "twitter",
+                    PublishedContent.published_at >= cutoff_time,
+                )
+                .all()
+            )
 
     async def _monitor_and_respond_to_mentions(self) -> dict:
         """Monitor mentions and respond to them."""
@@ -139,14 +142,14 @@ class EngagementAgent(BaseAgent):
             # For now, we'll search for our typical hashtags
             mentions = self.twitter_api.search_tweets(
                 query="to:our_handle OR @our_handle",  # Replace with actual handle
-                max_results=50
+                max_results=50,
             )
 
             results["mentions"] = len(mentions)
 
             # Process each mention
             reply_count = 0
-            for mention in mentions[:self.max_replies_per_run]:
+            for mention in mentions[: self.max_replies_per_run]:
                 if await self._should_reply_to_tweet(mention):
                     reply = await self._generate_reply(mention)
 
@@ -202,8 +205,12 @@ class EngagementAgent(BaseAgent):
         try:
             # Define crypto influencers to monitor
             influencers = [
-                "VitalikButerin", "cz_binance", "elonmusk",
-                "APompliano", "saylor", "CryptoCobain"
+                "VitalikButerin",
+                "cz_binance",
+                "elonmusk",
+                "APompliano",
+                "saylor",
+                "CryptoCobain",
             ]
 
             # Search for relevant tweets from influencers
@@ -215,9 +222,7 @@ class EngagementAgent(BaseAgent):
                 # Analyze and potentially retweet
                 for tweet in tweets[:1]:  # Max 1 retweet per influencer
                     if await self._should_retweet(tweet):
-                        self.log_info(
-                            f"Would retweet from {influencer}: {tweet['text'][:50]}..."
-                        )
+                        self.log_info(f"Would retweet from {influencer}: {tweet['text'][:50]}...")
                         results["retweets"] += 1
 
         except Exception as e:
@@ -225,10 +230,7 @@ class EngagementAgent(BaseAgent):
 
         return results
 
-    async def _update_engagement_metrics(
-        self,
-        recent_content: list[PublishedContent]
-    ) -> dict:
+    async def _update_engagement_metrics(self, recent_content: list[PublishedContent]) -> dict:
         """Update engagement metrics for recent content."""
         self.log_info("Updating engagement metrics...")
 
@@ -302,7 +304,7 @@ Reply:"""
             message = self.llm_client.messages.create(
                 model="claude-3-5-sonnet-20241022",
                 max_tokens=150,
-                messages=[{"role": "user", "content": prompt}]
+                messages=[{"role": "user", "content": prompt}],
             )
 
             reply = message.content[0].text.strip()
@@ -337,8 +339,14 @@ Reply:"""
         # Check content relevance
         text = tweet.get("text", "").lower()
         relevant_keywords = [
-            "bitcoin", "ethereum", "crypto", "blockchain",
-            "defi", "nft", "web3", "altcoin"
+            "bitcoin",
+            "ethereum",
+            "crypto",
+            "blockchain",
+            "defi",
+            "nft",
+            "web3",
+            "altcoin",
         ]
 
         is_relevant = any(keyword in text for keyword in relevant_keywords)
@@ -357,7 +365,7 @@ Reply:"""
             self.engaged_users[user_id] = {
                 "first_interaction": datetime.now(tz=timezone.utc),
                 "interaction_count": 1,
-                "last_interaction": datetime.now(tz=timezone.utc)
+                "last_interaction": datetime.now(tz=timezone.utc),
             }
         else:
             self.engaged_users[user_id]["interaction_count"] += 1
@@ -366,10 +374,7 @@ Reply:"""
         # Note: Would save to an engaged_users table for later use by ConversionAgent (Fase 3)
         # Database implementation pending
 
-    async def get_highly_engaged_users(
-        self,
-        min_interactions: int = 3
-    ) -> list[dict]:
+    async def get_highly_engaged_users(self, min_interactions: int = 3) -> list[dict]:
         """
         Get users who have engaged multiple times.
 
@@ -380,27 +385,17 @@ Reply:"""
             List of highly engaged users
         """
         highly_engaged = [
-            {
-                "user_id": user_id,
-                **data
-            }
+            {"user_id": user_id, **data}
             for user_id, data in self.engaged_users.items()
             if data["interaction_count"] >= min_interactions
         ]
 
         # Sort by interaction count
-        highly_engaged.sort(
-            key=lambda x: x["interaction_count"],
-            reverse=True
-        )
+        highly_engaged.sort(key=lambda x: x["interaction_count"], reverse=True)
 
         return highly_engaged
 
-    async def send_custom_reply(
-        self,
-        tweet_id: str,
-        reply_text: str
-    ) -> bool:
+    async def send_custom_reply(self, tweet_id: str, reply_text: str) -> bool:
         """
         Send a custom reply to a specific tweet.
 
@@ -416,10 +411,7 @@ Reply:"""
 
         try:
             # Create reply
-            _ = self.twitter_api.client.create_tweet(
-                text=reply_text,
-                in_reply_to_tweet_id=tweet_id
-            )
+            _ = self.twitter_api.client.create_tweet(text=reply_text, in_reply_to_tweet_id=tweet_id)
 
             self.log_info(f"Custom reply sent to tweet {tweet_id}")
             return True

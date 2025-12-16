@@ -47,7 +47,7 @@ class ContentCreationAgent(BaseAgent):
                 "You are a crypto educator. Your tone is helpful and informative. "
                 "You explain concepts clearly and help people learn. You're patient "
                 "and encouraging."
-            )
+            ),
         }
 
     async def execute(self) -> dict:
@@ -64,7 +64,7 @@ class ContentCreationAgent(BaseAgent):
             "tweets": 0,
             "threads": 0,
             "telegram_messages": 0,
-            "errors": []
+            "errors": [],
         }
 
         try:
@@ -90,7 +90,7 @@ class ContentCreationAgent(BaseAgent):
                                 results["threads"] += 1
                             elif plan.format in [
                                 ContentFormat.TELEGRAM_MESSAGE,
-                                ContentFormat.IMAGE_POST
+                                ContentFormat.IMAGE_POST,
                             ]:
                                 results["telegram_messages"] += 1
 
@@ -106,9 +106,7 @@ class ContentCreationAgent(BaseAgent):
 
                 db.commit()
 
-            self.log_info(
-                f"Content creation complete: {results['content_created']} pieces created"
-            )
+            self.log_info(f"Content creation complete: {results['content_created']} pieces created")
 
         except Exception as e:
             self.log_error(f"Content creation error: {e}")
@@ -124,10 +122,9 @@ class ContentCreationAgent(BaseAgent):
             List of pending content plans
         """
         with get_db() as db:
-            return db.query(ContentPlan).filter(
-                ContentPlan.status == "pending"
-            ).limit(10).all()  # Process 10 at a time
-
+            return (
+                db.query(ContentPlan).filter(ContentPlan.status == "pending").limit(10).all()
+            )  # Process 10 at a time
 
     async def _generate_content(self, plan: ContentPlan) -> dict:
         """
@@ -155,8 +152,7 @@ class ContentCreationAgent(BaseAgent):
     async def _generate_tweet(self, insight, plan: ContentPlan) -> dict:
         """Generate a single tweet."""
         personality = self.personality_prompts.get(
-            self.personality,
-            self.personality_prompts["hyper-analytical"]
+            self.personality, self.personality_prompts["hyper-analytical"]
         )
 
         prompt = f"""{personality}
@@ -181,7 +177,7 @@ Tweet:"""
             message = self.llm_client.messages.create(
                 model="claude-3-5-sonnet-20241022",
                 max_tokens=150,
-                messages=[{"role": "user", "content": prompt}]
+                messages=[{"role": "user", "content": prompt}],
             )
 
             tweet_text = message.content[0].text.strip()
@@ -190,11 +186,7 @@ Tweet:"""
             if len(tweet_text) > 280:
                 tweet_text = tweet_text[:277] + "..."
 
-            return {
-                "text": tweet_text,
-                "format": "tweet",
-                "content_plan_id": plan.id
-            }
+            return {"text": tweet_text, "format": "tweet", "content_plan_id": plan.id}
 
         except Exception as e:
             self.log_error(f"Error generating tweet: {e}")
@@ -203,8 +195,7 @@ Tweet:"""
     async def _generate_thread(self, insight, plan: ContentPlan) -> dict:
         """Generate a Twitter thread."""
         personality = self.personality_prompts.get(
-            self.personality,
-            self.personality_prompts["hyper-analytical"]
+            self.personality, self.personality_prompts["hyper-analytical"]
         )
 
         # Determine thread length based on confidence and detail
@@ -238,7 +229,7 @@ Thread:"""
             message = self.llm_client.messages.create(
                 model="claude-3-5-sonnet-20241022",
                 max_tokens=800,
-                messages=[{"role": "user", "content": prompt}]
+                messages=[{"role": "user", "content": prompt}],
             )
 
             response_text = message.content[0].text.strip()
@@ -260,15 +251,10 @@ Thread:"""
 
             # Ensure each tweet fits in 280 characters
             thread_tweets = [
-                tweet[:277] + "..." if len(tweet) > 280 else tweet
-                for tweet in thread_tweets
+                tweet[:277] + "..." if len(tweet) > 280 else tweet for tweet in thread_tweets
             ]
 
-            return {
-                "tweets": thread_tweets,
-                "format": "thread",
-                "content_plan_id": plan.id
-            }
+            return {"tweets": thread_tweets, "format": "thread", "content_plan_id": plan.id}
 
         except Exception as e:
             self.log_error(f"Error generating thread: {e}")
@@ -277,8 +263,7 @@ Thread:"""
     async def _generate_telegram_message(self, insight, plan: ContentPlan) -> dict:
         """Generate a Telegram message."""
         personality = self.personality_prompts.get(
-            self.personality,
-            self.personality_prompts["hyper-analytical"]
+            self.personality, self.personality_prompts["hyper-analytical"]
         )
 
         # Telegram allows markdown formatting
@@ -304,16 +289,12 @@ Message:"""
             message = self.llm_client.messages.create(
                 model="claude-3-5-sonnet-20241022",
                 max_tokens=500,
-                messages=[{"role": "user", "content": prompt}]
+                messages=[{"role": "user", "content": prompt}],
             )
 
             telegram_text = message.content[0].text.strip()
 
-            return {
-                "text": telegram_text,
-                "format": "telegram",
-                "content_plan_id": plan.id
-            }
+            return {"text": telegram_text, "format": "telegram", "content_plan_id": plan.id}
 
         except Exception as e:
             self.log_error(f"Error generating Telegram message: {e}")
@@ -322,8 +303,7 @@ Message:"""
     async def _generate_blog_post(self, insight, plan: ContentPlan) -> dict:
         """Generate a blog post."""
         personality = self.personality_prompts.get(
-            self.personality,
-            self.personality_prompts["educational"]
+            self.personality, self.personality_prompts["educational"]
         )
 
         prompt = f"""{personality}
@@ -350,7 +330,7 @@ Blog Post:"""
             message = self.llm_client.messages.create(
                 model="claude-3-5-sonnet-20241022",
                 max_tokens=1500,
-                messages=[{"role": "user", "content": prompt}]
+                messages=[{"role": "user", "content": prompt}],
             )
 
             blog_text = message.content[0].text.strip()
@@ -359,12 +339,7 @@ Blog Post:"""
             lines = blog_text.split("\n")
             title = lines[0].replace("#", "").strip() if lines else "Market Analysis"
 
-            return {
-                "title": title,
-                "text": blog_text,
-                "format": "blog",
-                "content_plan_id": plan.id
-            }
+            return {"title": title, "text": blog_text, "format": "blog", "content_plan_id": plan.id}
 
         except Exception as e:
             self.log_error(f"Error generating blog post: {e}")

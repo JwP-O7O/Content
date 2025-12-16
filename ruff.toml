@@ -43,6 +43,11 @@ ignore = [
     "PLR0913", # Too many arguments
     "PLR2004", # Magic value used in comparison
     "ISC001",  # Single line implicit string concatenation (conflicts with formatter)
+    "PLR0912", # Too many branches - existing code structure is reasonable
+    "PLR0915", # Too many statements - existing code structure is reasonable
+    "ARG002",  # Unused method arguments - some are required by interface/future use
+    "PTH120",  # os.path usage - existing pattern is acceptable
+    "E402",    # Module level import not at top - required for sys.path manipulation
 ]
 
 # Allow autofix for all enabled rules
@@ -63,7 +68,7 @@ exclude = [
 
 [lint.per-file-ignores]
 # Tests can use assert statements (S101) and magic values (PLR2004)
-"tests/**/*.py" = ["PLR2004", "S101"]
+"tests/**/*.py" = ["PLR2004", "S101", "PT004", "SIM117", "SIM105"]
 # Allow star imports in __init__.py
 "__init__.py" = ["F401", "F403"]
 

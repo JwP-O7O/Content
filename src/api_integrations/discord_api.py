@@ -68,10 +68,7 @@ class DiscordAPI:
         await self.bot.close()
 
     async def send_message(
-        self,
-        channel_id: str,
-        content: str,
-        embed: Optional[discord.Embed] = None
+        self, channel_id: str, content: str, embed: Optional[discord.Embed] = None
     ) -> Optional[dict]:
         """
         Send a message to a Discord channel.
@@ -99,7 +96,7 @@ class DiscordAPI:
                 "id": str(message.id),
                 "channel_id": str(message.channel.id),
                 "content": message.content,
-                "timestamp": message.created_at
+                "timestamp": message.created_at,
             }
 
         except Exception as e:
@@ -123,7 +120,7 @@ class DiscordAPI:
                 f"Thank you for joining our **{tier.upper()}** community!\n\n"
                 "You now have access to exclusive crypto insights and alpha signals."
             ),
-            color=discord.Color.green()
+            color=discord.Color.green(),
         )
 
         embed.add_field(
@@ -134,7 +131,7 @@ class DiscordAPI:
                 "• Daily crypto insights\n"
                 "• Priority support"
             ),
-            inline=False
+            inline=False,
         )
 
         embed.add_field(
@@ -144,18 +141,14 @@ class DiscordAPI:
                 "2. Introduce yourself in <#intro-channel>\n"
                 "3. Read the rules in <#rules-channel>"
             ),
-            inline=False
+            inline=False,
         )
 
         embed.set_footer(text="Automated by Content Creator AI")
 
         return embed
 
-    async def add_role_to_member(
-        self,
-        member_id: str,
-        role_id: str
-    ) -> bool:
+    async def add_role_to_member(self, member_id: str, role_id: str) -> bool:
         """
         Add a role to a Discord member.
 
@@ -190,11 +183,7 @@ class DiscordAPI:
             logger.error(f"Error adding role: {e}")
             return False
 
-    async def remove_role_from_member(
-        self,
-        member_id: str,
-        role_id: str
-    ) -> bool:
+    async def remove_role_from_member(self, member_id: str, role_id: str) -> bool:
         """
         Remove a role from a Discord member.
 
@@ -251,12 +240,7 @@ class DiscordAPI:
             logger.error(f"Error kicking member: {e}")
             return False
 
-    async def ban_member(
-        self,
-        member_id: str,
-        reason: str,
-        delete_message_days: int = 1
-    ) -> bool:
+    async def ban_member(self, member_id: str, reason: str, delete_message_days: int = 1) -> bool:
         """
         Ban a member from the Discord server.
 
@@ -275,10 +259,7 @@ class DiscordAPI:
             if not member:
                 return False
 
-            await member.ban(
-                reason=reason,
-                delete_message_days=delete_message_days
-            )
+            await member.ban(reason=reason, delete_message_days=delete_message_days)
 
             logger.info(f"Member {member.name} banned: {reason}")
 
@@ -316,11 +297,7 @@ class DiscordAPI:
             logger.error(f"Error deleting message: {e}")
             return False
 
-    async def get_channel_messages(
-        self,
-        channel_id: str,
-        limit: int = 100
-    ) -> list[dict]:
+    async def get_channel_messages(self, channel_id: str, limit: int = 100) -> list[dict]:
         """
         Get recent messages from a channel.
 
@@ -340,14 +317,16 @@ class DiscordAPI:
             messages = []
 
             async for message in channel.history(limit=limit):
-                messages.append({
-                    "id": str(message.id),
-                    "author_id": str(message.author.id),
-                    "author_name": message.author.name,
-                    "content": message.content,
-                    "timestamp": message.created_at,
-                    "attachments": [a.url for a in message.attachments]
-                })
+                messages.append(
+                    {
+                        "id": str(message.id),
+                        "author_id": str(message.author.id),
+                        "author_name": message.author.name,
+                        "content": message.content,
+                        "timestamp": message.created_at,
+                        "attachments": [a.url for a in message.attachments],
+                    }
+                )
 
             return messages
 
@@ -356,11 +335,7 @@ class DiscordAPI:
             return []
 
     def create_moderation_embed(
-        self,
-        action: str,
-        user: str,
-        reason: str,
-        moderator: str = "AI Moderator"
+        self, action: str, user: str, reason: str, moderator: str = "AI Moderator"
     ) -> discord.Embed:
         """
         Create an embed for moderation actions.
@@ -378,14 +353,14 @@ class DiscordAPI:
             "warn": discord.Color.yellow(),
             "kick": discord.Color.orange(),
             "ban": discord.Color.red(),
-            "delete": discord.Color.dark_gray()
+            "delete": discord.Color.dark_gray(),
         }
 
         embed = discord.Embed(
             title=f"🛡️ Moderation Action: {action.upper()}",
             description=f"**User:** {user}\n**Reason:** {reason}",
             color=color_map.get(action.lower(), discord.Color.blue()),
-            timestamp=discord.utils.utcnow()
+            timestamp=discord.utils.utcnow(),
         )
 
         embed.set_footer(text=f"Moderator: {moderator}")

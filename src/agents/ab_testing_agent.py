@@ -52,7 +52,7 @@ class ABTestingAgent(BaseAgent):
             "posting_time",
             "call_to_action",
             "emoji_usage",
-            "hashtag_count"
+            "hashtag_count",
         ]
 
     async def execute(self) -> dict:
@@ -69,7 +69,7 @@ class ABTestingAgent(BaseAgent):
             "tests_analyzed": 0,
             "tests_completed": 0,
             "winners_declared": 0,
-            "learnings": []
+            "learnings": [],
         }
 
         try:
@@ -105,9 +105,7 @@ class ABTestingAgent(BaseAgent):
         self.log_info("Analyzing active A/B tests...")
 
         with get_db() as db:
-            active_tests = db.query(ABTest).filter(
-                ABTest.status == TestStatus.ACTIVE
-            ).all()
+            active_tests = db.query(ABTest).filter(ABTest.status == TestStatus.ACTIVE).all()
 
             analyzed_count = 0
             completed_count = 0
@@ -118,9 +116,7 @@ class ABTestingAgent(BaseAgent):
                 analyzed_count += 1
 
                 # Check if test has enough data
-                variants = db.query(ABTestVariant).filter(
-                    ABTestVariant.test_id == test.id
-                ).all()
+                variants = db.query(ABTestVariant).filter(ABTestVariant.test_id == test.id).all()
 
                 # Update variant metrics from published content
                 for variant in variants:
@@ -149,7 +145,7 @@ class ABTestingAgent(BaseAgent):
                         "winner": winner["variant_name"],
                         "improvement": f"{winner['improvement']:.1f}%",
                         "confidence": f"{winner['confidence']:.0%}",
-                        "insight": winner["insight"]
+                        "insight": winner["insight"],
                     }
 
                     learnings.append(learning)
@@ -178,7 +174,7 @@ class ABTestingAgent(BaseAgent):
                 "analyzed_count": analyzed_count,
                 "completed_count": completed_count,
                 "winners_count": winners_count,
-                "learnings": learnings
+                "learnings": learnings,
             }
 
     async def _update_variant_metrics(self, variant: ABTestVariant, db) -> None:
@@ -190,9 +186,11 @@ class ABTestingAgent(BaseAgent):
             db: Database session
         """
         # Get all published content for this variant
-        content_items = db.query(PublishedContent).filter(
-            PublishedContent.ab_test_variant_id == variant.id
-        ).all()
+        content_items = (
+            db.query(PublishedContent)
+            .filter(PublishedContent.ab_test_variant_id == variant.id)
+            .all()
+        )
 
         if not content_items:
             return
@@ -215,9 +213,7 @@ class ABTestingAgent(BaseAgent):
         db.commit()
 
     async def _analyze_test_results(
-        self,
-        test: ABTest,
-        variants: list[ABTestVariant]
+        self, test: ABTest, variants: list[ABTestVariant]
     ) -> Optional[dict]:
         """
         Analyze test results to determine if there's a clear winner.
@@ -254,8 +250,7 @@ class ABTestingAgent(BaseAgent):
             # Calculate improvement
             if control.engagement_rate > 0:
                 improvement = (
-                    (variant.engagement_rate - control.engagement_rate)
-                    / control.engagement_rate
+                    (variant.engagement_rate - control.engagement_rate) / control.engagement_rate
                 ) * 100
             else:
                 improvement = 0
@@ -265,13 +260,11 @@ class ABTestingAgent(BaseAgent):
                 control.engagement_count,
                 control.impressions,
                 variant.engagement_count,
-                variant.impressions
+                variant.impressions,
             )
 
             # Check if this is a winning variant
-            if (confidence >= self.confidence_threshold and
-                improvement > best_improvement):
-
+            if confidence >= self.confidence_threshold and improvement > best_improvement:
                 best_variant = variant
                 best_improvement = improvement
                 best_confidence = confidence
@@ -279,10 +272,7 @@ class ABTestingAgent(BaseAgent):
         if best_variant:
             # Generate insight using AI
             insight = await self._generate_test_insight(
-                test,
-                control,
-                best_variant,
-                best_improvement
+                test, control, best_variant, best_improvement
             )
 
             return {
@@ -290,17 +280,13 @@ class ABTestingAgent(BaseAgent):
                 "variant_name": best_variant.variant_name,
                 "improvement": best_improvement,
                 "confidence": best_confidence,
-                "insight": insight
+                "insight": insight,
             }
 
         return None
 
     def _calculate_statistical_significance(
-        self,
-        control_successes: int,
-        control_total: int,
-        variant_successes: int,
-        variant_total: int
+        self, control_successes: int, control_total: int, variant_successes: int, variant_total: int
     ) -> float:
         """
         Calculate statistical significance using z-test for proportions.
@@ -325,7 +311,7 @@ class ABTestingAgent(BaseAgent):
         p_pool = (control_successes + variant_successes) / (control_total + variant_total)
 
         # Standard error
-        se = math.sqrt(p_pool * (1 - p_pool) * (1/control_total + 1/variant_total))
+        se = math.sqrt(p_pool * (1 - p_pool) * (1 / control_total + 1 / variant_total))
 
         if se == 0:
             return 0.0
@@ -344,11 +330,7 @@ class ABTestingAgent(BaseAgent):
         return min(0.85, z / 1.96 * 0.95)
 
     async def _generate_test_insight(
-        self,
-        test: ABTest,
-        control: ABTestVariant,
-        winner: ABTestVariant,
-        improvement: float
+        self, test: ABTest, control: ABTestVariant, winner: ABTestVariant, improvement: float
     ) -> str:
         """
         Generate insight about why a variant won using AI.
@@ -380,7 +362,7 @@ Provide a single-sentence insight explaining why the winning variant likely perf
             message = self.llm_client.messages.create(
                 model="claude-3-5-sonnet-20241022",
                 max_tokens=200,
-                messages=[{"role": "user", "content": prompt}]
+                messages=[{"role": "user", "content": prompt}],
             )
 
             return message.content[0].text.strip()
@@ -400,9 +382,7 @@ Provide a single-sentence insight explaining why the winning variant likely perf
 
         with get_db() as db:
             # Check how many active tests we have
-            active_count = db.query(ABTest).filter(
-                ABTest.status == TestStatus.ACTIVE
-            ).count()
+            active_count = db.query(ABTest).filter(ABTest.status == TestStatus.ACTIVE).count()
 
             if active_count >= self.max_active_tests:
                 self.log_info(f"Already at max active tests ({self.max_active_tests})")
@@ -411,11 +391,16 @@ Provide a single-sentence insight explaining why the winning variant likely perf
             # Find high-confidence insights that could benefit from testing
             cutoff = datetime.now(tz=timezone.utc) - timedelta(days=1)
 
-            insights = db.query(Insight).filter(
-                Insight.timestamp >= cutoff,
-                Insight.confidence >= 0.85,
-                Insight.is_published.is_(False)
-            ).limit(3).all()
+            insights = (
+                db.query(Insight)
+                .filter(
+                    Insight.timestamp >= cutoff,
+                    Insight.confidence >= 0.85,
+                    Insight.is_published.is_(False),
+                )
+                .limit(3)
+                .all()
+            )
 
             created_count = 0
 
@@ -432,11 +417,7 @@ Provide a single-sentence insight explaining why the winning variant likely perf
 
             return {"created_count": created_count}
 
-    async def _create_test_for_insight(
-        self,
-        insight: Insight,
-        db
-    ) -> Optional[ABTest]:
+    async def _create_test_for_insight(self, insight: Insight, db) -> Optional[ABTest]:
         """
         Create an A/B test for a specific insight.
 
@@ -450,6 +431,7 @@ Provide a single-sentence insight explaining why the winning variant likely perf
         try:
             # Choose what to test (randomly pick a variable for now)
             import random
+
             variable = random.choice(self.testable_variables)
 
             # Create test
@@ -460,25 +442,21 @@ Provide a single-sentence insight explaining why the winning variant likely perf
                 insight_id=insight.id,
                 asset=insight.asset,
                 platform="twitter",
-                status=TestStatus.ACTIVE
+                status=TestStatus.ACTIVE,
             )
 
             db.add(test)
             db.flush()
 
             # Generate variants using AI
-            variants = await self._generate_test_variants(
-                insight,
-                variable,
-                test.id
-            )
+            variants = await self._generate_test_variants(insight, variable, test.id)
 
             for variant_data in variants:
                 variant = ABTestVariant(
                     test_id=test.id,
                     variant_name=variant_data["name"],
                     is_control=variant_data["is_control"],
-                    variant_config=variant_data["config"]
+                    variant_config=variant_data["config"],
                 )
                 db.add(variant)
 
@@ -492,10 +470,7 @@ Provide a single-sentence insight explaining why the winning variant likely perf
             return None
 
     async def _generate_test_variants(
-        self,
-        insight: Insight,
-        variable: str,
-        test_id: int
+        self, insight: Insight, variable: str, test_id: int
     ) -> list[dict]:
         """
         Generate test variants using AI.
@@ -538,7 +513,7 @@ Be creative and data-driven in your variations."""
             message = self.llm_client.messages.create(
                 model="claude-3-5-sonnet-20241022",
                 max_tokens=500,
-                messages=[{"role": "user", "content": prompt}]
+                messages=[{"role": "user", "content": prompt}],
             )
 
             response_text = message.content[0].text.strip()
@@ -549,22 +524,13 @@ Be creative and data-driven in your variations."""
             json_str = response_text[start_idx:end_idx]
             return json.loads(json_str)
 
-
         except Exception as e:
             self.log_error(f"Error generating variants: {e}")
 
             # Return default variants
             return [
-                {
-                    "name": "control",
-                    "is_control": True,
-                    "config": {variable: "standard"}
-                },
-                {
-                    "name": "variant_a",
-                    "is_control": False,
-                    "config": {variable: "optimized"}
-                }
+                {"name": "control", "is_control": True, "config": {variable: "standard"}},
+                {"name": "variant_a", "is_control": False, "config": {variable: "optimized"}},
             ]
 
     async def get_test_results(self, test_id: int) -> dict:
@@ -583,9 +549,7 @@ Be creative and data-driven in your variations."""
             if not test:
                 return {"error": "Test not found"}
 
-            variants = db.query(ABTestVariant).filter(
-                ABTestVariant.test_id == test_id
-            ).all()
+            variants = db.query(ABTestVariant).filter(ABTestVariant.test_id == test_id).all()
 
             return {
                 "test_name": test.test_name,
@@ -605,10 +569,10 @@ Be creative and data-driven in your variations."""
                         "impressions": v.impressions,
                         "engagement_count": v.engagement_count,
                         "engagement_rate": v.engagement_rate,
-                        "sample_size": v.sample_size
+                        "sample_size": v.sample_size,
                     }
                     for v in variants
-                ]
+                ],
             }
 
     async def get_all_learnings(self, days: int = 30) -> list[dict]:
@@ -624,10 +588,11 @@ Be creative and data-driven in your variations."""
         cutoff = datetime.now(tz=timezone.utc) - timedelta(days=days)
 
         with get_db() as db:
-            completed_tests = db.query(ABTest).filter(
-                ABTest.status == TestStatus.COMPLETED,
-                ABTest.completed_at >= cutoff
-            ).all()
+            completed_tests = (
+                db.query(ABTest)
+                .filter(ABTest.status == TestStatus.COMPLETED, ABTest.completed_at >= cutoff)
+                .all()
+            )
 
             learnings = []
 
@@ -635,17 +600,21 @@ Be creative and data-driven in your variations."""
                 if not test.winning_variant_id:
                     continue
 
-                winner = db.query(ABTestVariant).filter(
-                    ABTestVariant.id == test.winning_variant_id
-                ).first()
+                winner = (
+                    db.query(ABTestVariant)
+                    .filter(ABTestVariant.id == test.winning_variant_id)
+                    .first()
+                )
 
-                learnings.append({
-                    "test_name": test.test_name,
-                    "variable": test.variable_being_tested,
-                    "winner_config": winner.variant_config if winner else {},
-                    "improvement": test.improvement_percentage,
-                    "confidence": test.confidence_level,
-                    "completed_at": test.completed_at.isoformat()
-                })
+                learnings.append(
+                    {
+                        "test_name": test.test_name,
+                        "variable": test.variable_being_tested,
+                        "winner_config": winner.variant_config if winner else {},
+                        "improvement": test.improvement_percentage,
+                        "confidence": test.confidence_level,
+                        "completed_at": test.completed_at.isoformat(),
+                    }
+                )
 
             return learnings

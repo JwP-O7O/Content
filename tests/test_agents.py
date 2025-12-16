@@ -14,6 +14,7 @@ class TestBaseAgent:
 
     def test_base_agent_initialization(self):
         """Test that base agent initializes correctly."""
+
         # Create a concrete implementation for testing
         class ConcreteAgent(BaseAgent):
             async def execute(self):
@@ -24,9 +25,10 @@ class TestBaseAgent:
         assert hasattr(agent, "log_info")
         assert hasattr(agent, "log_error")
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_base_agent_run_calls_execute(self):
         """Test that run() calls execute()."""
+
         # Create a concrete implementation for testing
         class ConcreteAgent(BaseAgent):
             def __init__(self, name):
@@ -62,19 +64,13 @@ class TestABTestingAgent:
 
             # Test with clear winner (high significance)
             confidence = agent._calculate_statistical_significance(
-                control_successes=100,
-                control_total=1000,
-                variant_successes=150,
-                variant_total=1000
+                control_successes=100, control_total=1000, variant_successes=150, variant_total=1000
             )
             assert confidence > 0.95  # Should be highly significant
 
             # Test with no difference
             confidence = agent._calculate_statistical_significance(
-                control_successes=100,
-                control_total=1000,
-                variant_successes=100,
-                variant_total=1000
+                control_successes=100, control_total=1000, variant_successes=100, variant_total=1000
             )
             assert confidence < 0.9  # Should not be significant
 
@@ -85,10 +81,7 @@ class TestABTestingAgent:
 
             # Zero total should return 0
             confidence = agent._calculate_statistical_significance(
-                control_successes=0,
-                control_total=0,
-                variant_successes=10,
-                variant_total=100
+                control_successes=0, control_total=0, variant_successes=10, variant_total=100
             )
             assert confidence == 0.0
 
@@ -104,7 +97,7 @@ class TestStrategyTuningAgent:
             assert agent.confidence_level == 0.8
             assert agent.max_adjustments_per_run == 5
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_execute_returns_structure(self):
         """Test that execute returns expected structure."""
         with patch("src.agents.strategy_tuning_agent.Anthropic"):

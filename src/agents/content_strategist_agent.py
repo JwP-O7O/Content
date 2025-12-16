@@ -32,28 +32,28 @@ class ContentStrategistAgent(BaseAgent):
         self.format_rules = {
             InsightType.BREAKOUT: {
                 "high_confidence": ContentFormat.THREAD,  # >= 0.8
-                "medium_confidence": ContentFormat.SINGLE_TWEET  # < 0.8
+                "medium_confidence": ContentFormat.SINGLE_TWEET,  # < 0.8
             },
             InsightType.BREAKDOWN: {
                 "high_confidence": ContentFormat.THREAD,
-                "medium_confidence": ContentFormat.SINGLE_TWEET
+                "medium_confidence": ContentFormat.SINGLE_TWEET,
             },
             InsightType.NEWS_IMPACT: {
                 "high_confidence": ContentFormat.THREAD,
-                "medium_confidence": ContentFormat.SINGLE_TWEET
+                "medium_confidence": ContentFormat.SINGLE_TWEET,
             },
             InsightType.VOLUME_SPIKE: {
                 "high_confidence": ContentFormat.SINGLE_TWEET,
-                "medium_confidence": ContentFormat.SINGLE_TWEET
+                "medium_confidence": ContentFormat.SINGLE_TWEET,
             },
             InsightType.SENTIMENT_SHIFT: {
                 "high_confidence": ContentFormat.SINGLE_TWEET,
-                "medium_confidence": ContentFormat.TELEGRAM_MESSAGE
+                "medium_confidence": ContentFormat.TELEGRAM_MESSAGE,
             },
             InsightType.TECHNICAL_PATTERN: {
                 "high_confidence": ContentFormat.THREAD,
-                "medium_confidence": ContentFormat.SINGLE_TWEET
-            }
+                "medium_confidence": ContentFormat.SINGLE_TWEET,
+            },
         }
 
         # Optimal posting times (hours in UTC)
@@ -76,7 +76,7 @@ class ContentStrategistAgent(BaseAgent):
             "insights_reviewed": 0,
             "content_plans_created": 0,
             "exclusive_content_plans": 0,
-            "skipped_insights": 0
+            "skipped_insights": 0,
         }
 
         try:
@@ -151,13 +151,12 @@ class ContentStrategistAgent(BaseAgent):
             # Get insights from the last 24 hours that aren't published
             cutoff_time = datetime.now(tz=timezone.utc) - timedelta(hours=24)
 
-            return db.query(Insight).filter(
-                Insight.is_published.is_(False),
-                Insight.timestamp >= cutoff_time
-            ).order_by(
-                Insight.confidence.desc()
-            ).all()
-
+            return (
+                db.query(Insight)
+                .filter(Insight.is_published.is_(False), Insight.timestamp >= cutoff_time)
+                .order_by(Insight.confidence.desc())
+                .all()
+            )
 
     async def _get_todays_content_plans(self) -> list[ContentPlan]:
         """
@@ -169,16 +168,9 @@ class ContentStrategistAgent(BaseAgent):
         with get_db() as db:
             today_start = datetime.now(tz=timezone.utc).replace(hour=0, minute=0, second=0)
 
-            return db.query(ContentPlan).filter(
-                ContentPlan.timestamp >= today_start
-            ).all()
+            return db.query(ContentPlan).filter(ContentPlan.timestamp >= today_start).all()
 
-
-    def _create_content_plan(
-        self,
-        insight: Insight,
-        is_exclusive: bool
-    ) -> ContentPlan:
+    def _create_content_plan(self, insight: Insight, is_exclusive: bool) -> ContentPlan:
         """
         Create a content plan for an insight.
 
@@ -218,7 +210,7 @@ class ContentStrategistAgent(BaseAgent):
             format=content_format,
             priority=priority,
             scheduled_for=scheduled_time,
-            status="pending"
+            status="pending",
         )
 
         self.log_info(
@@ -267,11 +259,7 @@ class ContentStrategistAgent(BaseAgent):
 
         # If no time found today, use first time tomorrow
         tomorrow = now + timedelta(days=1)
-        return tomorrow.replace(
-            hour=self.optimal_times[0],
-            minute=0,
-            second=0
-        )
+        return tomorrow.replace(hour=self.optimal_times[0], minute=0, second=0)
 
     async def optimize_strategy(self) -> dict:
         """
@@ -286,9 +274,9 @@ class ContentStrategistAgent(BaseAgent):
             # Get published content from last 30 days
             cutoff = datetime.now(tz=timezone.utc) - timedelta(days=30)
 
-            published = db.query(PublishedContent).filter(
-                PublishedContent.published_at >= cutoff
-            ).all()
+            published = (
+                db.query(PublishedContent).filter(PublishedContent.published_at >= cutoff).all()
+            )
 
             if not published:
                 return {"message": "Not enough data for optimization"}
@@ -303,13 +291,11 @@ class ContentStrategistAgent(BaseAgent):
                     format_performance[fmt] = {
                         "count": 0,
                         "total_engagement": 0,
-                        "avg_engagement": 0
+                        "avg_engagement": 0,
                     }
 
                 format_performance[fmt]["count"] += 1
-                format_performance[fmt]["total_engagement"] += (
-                    content.engagement_rate or 0
-                )
+                format_performance[fmt]["total_engagement"] += content.engagement_rate or 0
 
             # Calculate averages
             for fmt in format_performance:
@@ -324,7 +310,7 @@ class ContentStrategistAgent(BaseAgent):
             return {
                 "analyzed_content": len(published),
                 "format_performance": format_performance,
-                "recommendations": self._generate_recommendations(format_performance)
+                "recommendations": self._generate_recommendations(format_performance),
             }
 
     def _generate_recommendations(self, performance: dict) -> list[str]:
@@ -333,9 +319,7 @@ class ContentStrategistAgent(BaseAgent):
 
         # Find best performing format
         best_format = max(
-            performance.items(),
-            key=lambda x: x[1]["avg_engagement"],
-            default=(None, None)
+            performance.items(), key=lambda x: x[1]["avg_engagement"], default=(None, None)
         )
 
         if best_format[0]:
@@ -366,20 +350,20 @@ class ContentStrategistAgent(BaseAgent):
 
         self.log_info("Planning content repurposing...")
 
-        results = {
-            "candidates_found": 0,
-            "repurpose_plans_created": 0,
-            "platforms_targeted": []
-        }
+        results = {"candidates_found": 0, "repurpose_plans_created": 0, "platforms_targeted": []}
 
         with get_db() as db:
             # Find high-performing content from last 7 days
             cutoff = datetime.now(tz=timezone.utc) - timedelta(days=7)
 
-            high_performers = db.query(PublishedContent).filter(
-                PublishedContent.published_at >= cutoff,
-                PublishedContent.engagement_rate >= self.repurpose_high_performing_threshold
-            ).all()
+            high_performers = (
+                db.query(PublishedContent)
+                .filter(
+                    PublishedContent.published_at >= cutoff,
+                    PublishedContent.engagement_rate >= self.repurpose_high_performing_threshold,
+                )
+                .all()
+            )
 
             results["candidates_found"] = len(high_performers)
 
@@ -399,7 +383,7 @@ class ContentStrategistAgent(BaseAgent):
                         format=plan_data["format"],
                         priority="medium",
                         scheduled_for=self._get_next_optimal_time(),
-                        status="pending"
+                        status="pending",
                     )
 
                     db.add(repurpose_plan)
@@ -424,10 +408,13 @@ class ContentStrategistAgent(BaseAgent):
             # on different platforms
             insight_id = content.content_plan.insight_id
 
-            other_plans = db.query(ContentPlan).filter(
-                ContentPlan.insight_id == insight_id,
-                ContentPlan.id != content.content_plan.id
-            ).count()
+            other_plans = (
+                db.query(ContentPlan)
+                .filter(
+                    ContentPlan.insight_id == insight_id, ContentPlan.id != content.content_plan.id
+                )
+                .count()
+            )
 
             # If there are already 2+ plans for this insight, skip
             return other_plans >= 2
@@ -448,26 +435,32 @@ class ContentStrategistAgent(BaseAgent):
 
         # Twitter thread -> Blog post
         if original_platform == "twitter" and original_format == ContentFormat.THREAD:
-            plans.append({
-                "platform": "blog",
-                "format": ContentFormat.BLOG_POST,
-                "reason": "Expand thread into detailed blog post"
-            })
+            plans.append(
+                {
+                    "platform": "blog",
+                    "format": ContentFormat.BLOG_POST,
+                    "reason": "Expand thread into detailed blog post",
+                }
+            )
 
         # Twitter post -> Telegram
         if original_platform == "twitter":
-            plans.append({
-                "platform": "telegram_public",
-                "format": ContentFormat.TELEGRAM_MESSAGE,
-                "reason": "Share Twitter success on Telegram"
-            })
+            plans.append(
+                {
+                    "platform": "telegram_public",
+                    "format": ContentFormat.TELEGRAM_MESSAGE,
+                    "reason": "Share Twitter success on Telegram",
+                }
+            )
 
         # Blog post -> Twitter thread
         if original_platform == "blog":
-            plans.append({
-                "platform": "twitter",
-                "format": ContentFormat.THREAD,
-                "reason": "Condense blog into thread"
-            })
+            plans.append(
+                {
+                    "platform": "twitter",
+                    "format": ContentFormat.THREAD,
+                    "reason": "Condense blog into thread",
+                }
+            )
 
         return plans

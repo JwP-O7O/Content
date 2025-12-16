@@ -58,7 +58,7 @@ class FeedbackLoopCoordinator(BaseAgent):
             "components": {},
             "synthesized_insights": [],
             "optimization_priorities": [],
-            "actions_taken": []
+            "actions_taken": [],
         }
 
         try:
@@ -79,11 +79,9 @@ class FeedbackLoopCoordinator(BaseAgent):
 
             # Step 4: Synthesize and coordinate
             self.log_info("Step 4/4: Synthesizing insights and coordinating...")
-            synthesis = await self._synthesize_learnings({
-                "analytics": analytics_results,
-                "ab_testing": ab_results,
-                "tuning": tuning_results
-            })
+            synthesis = await self._synthesize_learnings(
+                {"analytics": analytics_results, "ab_testing": ab_results, "tuning": tuning_results}
+            )
 
             results["synthesized_insights"] = synthesis["insights"]
             results["optimization_priorities"] = synthesis["priorities"]
@@ -168,7 +166,7 @@ Respond with JSON:
             message = self.llm_client.messages.create(
                 model="claude-3-5-sonnet-20241022",
                 max_tokens=1500,
-                messages=[{"role": "user", "content": prompt}]
+                messages=[{"role": "user", "content": prompt}],
             )
 
             response_text = message.content[0].text.strip()
@@ -196,11 +194,7 @@ Respond with JSON:
         except Exception as e:
             self.log_error(f"Error synthesizing learnings: {e}")
 
-            return {
-                "insights": [],
-                "priorities": [],
-                "actions": []
-            }
+            return {"insights": [], "priorities": [], "actions": []}
 
     def _is_safe_action(self, action: dict) -> bool:
         """
@@ -217,7 +211,7 @@ Respond with JSON:
             "posting_schedule",
             "content_format_weights",
             "engagement_thresholds",
-            "ab_test_parameters"
+            "ab_test_parameters",
         ]
 
         component = action.get("component", "")
@@ -241,8 +235,7 @@ Respond with JSON:
         """
         try:
             self.log_info(
-                f"Applying coordinated action: {action['action']} "
-                f"to {action['component']}"
+                f"Applying coordinated action: {action['action']} " f"to {action['component']}"
             )
 
             # In a production system, this would actually update agent configurations
@@ -257,8 +250,8 @@ Respond with JSON:
                     details={
                         "component": action["component"],
                         "parameters": action.get("parameters", {}),
-                        "reason": action.get("reason", "")
-                    }
+                        "reason": action.get("reason", ""),
+                    },
                 )
                 db.add(log)
                 db.commit()
@@ -284,26 +277,33 @@ Respond with JSON:
         cutoff = datetime.now(tz=timezone.utc) - timedelta(days=days)
 
         with get_db() as db:
-            logs = db.query(AgentLog).filter(
-                AgentLog.agent_name == "FeedbackLoopCoordinator",
-                AgentLog.timestamp >= cutoff,
-                AgentLog.action.like("Applied optimization:%")
-            ).order_by(AgentLog.timestamp.desc()).all()
+            logs = (
+                db.query(AgentLog)
+                .filter(
+                    AgentLog.agent_name == "FeedbackLoopCoordinator",
+                    AgentLog.timestamp >= cutoff,
+                    AgentLog.action.like("Applied optimization:%"),
+                )
+                .order_by(AgentLog.timestamp.desc())
+                .all()
+            )
 
             optimizations = []
 
             for log in logs:
-                optimizations.append({
-                    "timestamp": log.timestamp.isoformat(),
-                    "action": log.action,
-                    "status": log.status,
-                    "details": log.details
-                })
+                optimizations.append(
+                    {
+                        "timestamp": log.timestamp.isoformat(),
+                        "action": log.action,
+                        "status": log.status,
+                        "details": log.details,
+                    }
+                )
 
             return {
                 "period_days": days,
                 "total_optimizations": len(optimizations),
-                "optimizations": optimizations
+                "optimizations": optimizations,
             }
 
     async def generate_learning_report(self, days: int = 7) -> str:
@@ -359,11 +359,10 @@ Format as markdown."""
             message = self.llm_client.messages.create(
                 model="claude-3-5-sonnet-20241022",
                 max_tokens=2000,
-                messages=[{"role": "user", "content": prompt}]
+                messages=[{"role": "user", "content": prompt}],
             )
 
             return message.content[0].text.strip()
-
 
         except Exception as e:
             self.log_error(f"Error generating learning report: {e}")
@@ -403,9 +402,12 @@ Format as markdown."""
 
             cutoff = datetime.now(tz=timezone.utc) - timedelta(days=1)
 
-            snapshot = db.query(PerformanceSnapshot).filter(
-                PerformanceSnapshot.snapshot_date >= cutoff
-            ).order_by(PerformanceSnapshot.snapshot_date.desc()).first()
+            snapshot = (
+                db.query(PerformanceSnapshot)
+                .filter(PerformanceSnapshot.snapshot_date >= cutoff)
+                .order_by(PerformanceSnapshot.snapshot_date.desc())
+                .first()
+            )
 
             if not snapshot:
                 return {"health_score": 0, "status": "unknown", "components": {}}
@@ -420,7 +422,9 @@ Format as markdown."""
                 components["content_production"] = 0
 
             # Engagement health
-            components["engagement"] = snapshot.avg_engagement_rate * 100 if snapshot.avg_engagement_rate else 0
+            components["engagement"] = (
+                snapshot.avg_engagement_rate * 100 if snapshot.avg_engagement_rate else 0
+            )
 
             # Monetization health
             if snapshot.total_paying_members > 0:
@@ -429,10 +433,14 @@ Format as markdown."""
                 components["monetization"] = 0
 
             # Conversion health
-            components["conversion"] = snapshot.conversion_rate * 100 if snapshot.conversion_rate else 0
+            components["conversion"] = (
+                snapshot.conversion_rate * 100 if snapshot.conversion_rate else 0
+            )
 
             # AI performance health
-            components["ai_performance"] = snapshot.avg_insight_confidence * 100 if snapshot.avg_insight_confidence else 0
+            components["ai_performance"] = (
+                snapshot.avg_insight_confidence * 100 if snapshot.avg_insight_confidence else 0
+            )
 
             # Calculate overall health score (weighted average)
             weights = {
@@ -440,13 +448,10 @@ Format as markdown."""
                 "engagement": 0.3,
                 "monetization": 0.25,
                 "conversion": 0.15,
-                "ai_performance": 0.1
+                "ai_performance": 0.1,
             }
 
-            overall_score = sum(
-                components[k] * weights[k]
-                for k in components
-            )
+            overall_score = sum(components[k] * weights[k] for k in components)
 
             # Determine status
             if overall_score >= 80:
@@ -462,5 +467,5 @@ Format as markdown."""
                 "health_score": round(overall_score, 1),
                 "status": status,
                 "components": {k: round(v, 1) for k, v in components.items()},
-                "timestamp": datetime.now(tz=timezone.utc).isoformat()
+                "timestamp": datetime.now(tz=timezone.utc).isoformat(),
             }

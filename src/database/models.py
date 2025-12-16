@@ -72,6 +72,7 @@ class SentimentData(Base):
 
 class InsightType(enum.Enum):
     """Types of insights the AnalysisAgent can generate."""
+
     BREAKOUT = "breakout"
     BREAKDOWN = "breakdown"
     SENTIMENT_SHIFT = "sentiment_shift"
@@ -103,6 +104,7 @@ class Insight(Base):
 
 class ContentFormat(enum.Enum):
     """Content format types."""
+
     SINGLE_TWEET = "single_tweet"
     THREAD = "thread"
     BLOG_POST = "blog_post"
@@ -127,7 +129,9 @@ class ContentPlan(Base):
 
     # Relationships
     insight = relationship("Insight", back_populates="content_plans")
-    published_content = relationship("PublishedContent", back_populates="content_plan", uselist=False)
+    published_content = relationship(
+        "PublishedContent", back_populates="content_plan", uselist=False
+    )
 
 
 class PublishedContent(Base):
@@ -184,6 +188,7 @@ class AgentLog(Base):
 
 class UserTier(enum.Enum):
     """User membership tiers."""
+
     FREE = "free"
     BASIC = "basic"
     PREMIUM = "premium"
@@ -389,6 +394,7 @@ class ModerationAction(Base):
 
 class TestStatus(enum.Enum):
     """A/B test status."""
+
     ACTIVE = "active"
     COMPLETED = "completed"
     PAUSED = "paused"
@@ -405,7 +411,9 @@ class ABTest(Base):
     # Test metadata
     test_name = Column(String(200), nullable=False)
     hypothesis = Column(Text)
-    variable_being_tested = Column(String(100), nullable=False)  # headline, format, posting_time, cta, etc.
+    variable_being_tested = Column(
+        String(100), nullable=False
+    )  # headline, format, posting_time, cta, etc.
 
     # Test configuration
     insight_id = Column(Integer, ForeignKey("insights.id"))  # Optional - link to specific insight
@@ -426,7 +434,9 @@ class ABTest(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     # Relationships
-    variants = relationship("ABTestVariant", back_populates="test", foreign_keys="ABTestVariant.test_id")
+    variants = relationship(
+        "ABTestVariant", back_populates="test", foreign_keys="ABTestVariant.test_id"
+    )
 
 
 class ABTestVariant(Base):
@@ -500,6 +510,8 @@ class PerformanceSnapshot(Base):
 
     # AI performance
     avg_insight_confidence = Column(Float, default=0.0)
-    insight_accuracy_rate = Column(Float, default=0.0)  # How often high-confidence insights performed well
+    insight_accuracy_rate = Column(
+        Float, default=0.0
+    )  # How often high-confidence insights performed well
 
     created_at = Column(DateTime, default=datetime.utcnow)
