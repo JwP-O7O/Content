@@ -12,12 +12,23 @@ from sqlalchemy import func
 
 from src.database.connection import get_db
 from src.database.models import (
-    CommunityUser, UserInteraction, PublishedContent,
+    Base, CommunityUser, UserInteraction, PublishedContent,
     ContentPlan, Insight, UserTier, InsightType, ContentFormat
 )
+from src.database.connection import SessionLocal, engine
 from src.agents.conversion_agent import ConversionAgent
 from src.agents.performance_analytics_agent import PerformanceAnalyticsAgent
 from src.agents.analytics_agent import AnalyticsAgent
+
+
+@pytest.fixture
+def db_session():
+    """Provide a shared database session for tests."""
+    Base.metadata.drop_all(bind=engine)
+    Base.metadata.create_all(bind=engine)
+    session = SessionLocal()
+    yield session
+    session.close()
 
 
 @pytest.fixture
@@ -107,6 +118,10 @@ class TestConversionAgentPerformance:
             ).all()
             
             sql_results = {stat.user_id: stat.count for stat in sql_stats}
+            # Ensure users without interactions are represented with zero counts
+            all_user_ids = [u.id for u in db.query(CommunityUser.id).all()]
+            for user_id in all_user_ids:
+                sql_results.setdefault(user_id, 0)
             
             # Python loop approach (original)
             users = db.query(CommunityUser).all()
@@ -210,16 +225,17 @@ class TestAnalyticsAgentOptimizations:
         from src.database.models import AgentLog
         
         logs = []
-        for i in range(50):
-            log = AgentLog(
-                agent_name=f"Agent{i % 5}",  # 5 different agents
-                action="execute",
-                status="success" if i % 10 != 0 else "error",
-                execution_time=0.5 + (i * 0.1),
-                timestamp=datetime.utcnow() - timedelta(hours=i)
-            )
-            db_session.add(log)
-            logs.append(log)
+        for agent_idx in range(5):
+            for run_idx in range(10):
+                log = AgentLog(
+                    agent_name=f"Agent{agent_idx}",
+                    action="execute",
+                    status="error" if run_idx == 0 else "success",
+                    execution_time=0.5 + (run_idx * 0.1),
+                    timestamp=datetime.utcnow() - timedelta(hours=(agent_idx * 10 + run_idx))
+                )
+                db_session.add(log)
+                logs.append(log)
         
         db_session.commit()
         return logs

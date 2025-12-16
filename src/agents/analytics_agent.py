@@ -2,7 +2,7 @@
 
 from typing import Dict, List
 from datetime import datetime, timedelta
-from sqlalchemy import func
+from sqlalchemy import func, case
 
 from src.agents.base_agent import BaseAgent
 from src.database.connection import get_db
@@ -98,8 +98,8 @@ class AnalyticsAgent(BaseAgent):
             agent_stats_query = db.query(
                 AgentLog.agent_name,
                 func.count(AgentLog.id).label('total_runs'),
-                func.sum(func.case((AgentLog.status == 'success', 1), else_=0)).label('successful_runs'),
-                func.sum(func.case((AgentLog.status == 'error', 1), else_=0)).label('failed_runs'),
+                func.sum(case((AgentLog.status == 'success', 1), else_=0)).label('successful_runs'),
+                func.sum(case((AgentLog.status == 'error', 1), else_=0)).label('failed_runs'),
                 func.avg(AgentLog.execution_time).label('avg_execution_time'),
                 func.sum(AgentLog.execution_time).label('total_execution_time')
             ).filter(

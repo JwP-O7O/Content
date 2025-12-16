@@ -1,9 +1,13 @@
 """Stripe API integration for payment processing."""
 
-import stripe
 from typing import Dict, Optional
 from datetime import datetime
 from loguru import logger
+
+try:
+    import stripe
+except ImportError:  # pragma: no cover - optional dependency for tests
+    stripe = None
 
 from config.config import settings
 
@@ -20,6 +24,8 @@ class StripeAPI:
         Args:
             api_key: Stripe API key (defaults to settings)
         """
+        if stripe is None:
+            raise ImportError("stripe package is required for StripeAPI but is not installed")
         self.api_key = api_key or getattr(settings, 'stripe_api_key', None)
 
         if self.api_key:

@@ -4,7 +4,7 @@ import asyncio
 from typing import Dict, List
 from datetime import datetime, timedelta
 from anthropic import Anthropic
-from sqlalchemy import func
+from sqlalchemy import func, case
 from sqlalchemy.orm import joinedload
 
 from src.agents.base_agent import BaseAgent
@@ -62,7 +62,11 @@ class ConversionAgent(BaseAgent):
             self.stripe_api = None
 
         # Initialize LLM for personalized messages
-        self.llm_client = Anthropic(api_key=settings.anthropic_api_key)
+        try:
+            self.llm_client = Anthropic(api_key=settings.anthropic_api_key)
+        except Exception as e:
+            self.log_warning(f"Anthropic client not configured: {e}")
+            self.llm_client = None
 
         # Conversion parameters
         self.min_engagement_score = settings.conversion_min_engagement_score
@@ -148,8 +152,8 @@ class ConversionAgent(BaseAgent):
                 func.count(UserInteraction.id).label('interaction_count'),
                 func.max(UserInteraction.timestamp).label('last_interaction'),
                 func.sum(
-                    UserInteraction.engagement_value * 
-                    func.case(
+                    UserInteraction.engagement_value *
+                    case(
                         (UserInteraction.interaction_type == 'like', self.ENGAGEMENT_WEIGHTS['like']),
                         (UserInteraction.interaction_type == 'reply', self.ENGAGEMENT_WEIGHTS['reply']),
                         (UserInteraction.interaction_type == 'retweet', self.ENGAGEMENT_WEIGHTS['retweet']),

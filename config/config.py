@@ -8,23 +8,23 @@ class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
 
     # Database
-    database_url: str
+    database_url: str = "sqlite:///:memory:"
 
     # LLM API Keys
-    anthropic_api_key: str
+    anthropic_api_key: str = "test"
     google_api_key: Optional[str] = None
     google_api_key_backup: Optional[str] = None  # Backup Gemini key for failover
     openai_api_key: Optional[str] = None
 
     # Social Media
-    twitter_api_key: str
-    twitter_api_secret: str
-    twitter_access_token: str
-    twitter_access_token_secret: str
-    twitter_bearer_token: str
+    twitter_api_key: str = "test"
+    twitter_api_secret: str = "test"
+    twitter_access_token: str = "test"
+    twitter_access_token_secret: str = "test"
+    twitter_bearer_token: str = "test"
 
-    telegram_bot_token: str
-    telegram_channel_id: str
+    telegram_bot_token: str = "test"
+    telegram_channel_id: str = "test"
 
     # Exchange APIs
     binance_api_key: Optional[str] = None

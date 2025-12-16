@@ -43,7 +43,11 @@ class EngagementAgent(BaseAgent):
             self.twitter_api = None
 
         # Initialize LLM for generating replies
-        self.llm_client = Anthropic(api_key=settings.anthropic_api_key)
+        try:
+            self.llm_client = Anthropic(api_key=settings.anthropic_api_key)
+        except Exception as e:
+            self.log_warning(f"Anthropic client not configured: {e}")
+            self.llm_client = None
 
         # Engagement parameters
         self.auto_like_threshold = 0.3  # Like posts with sentiment > 0.3
