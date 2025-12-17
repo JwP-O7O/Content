@@ -1,19 +1,21 @@
 """StrategyTuningAgent - Automatically optimizes system strategies based on performance."""
 
-from typing import Dict, List
-from datetime import datetime, timedelta
 import json
 from sqlalchemy import func
 from sqlalchemy.orm import joinedload
+from datetime import datetime, timedelta, timezone
 
+from anthropic import Anthropic
+
+from config.config import settings
 from src.agents.base_agent import BaseAgent
 from src.database.connection import get_db
 from src.database.models import (
     PublishedContent, Insight, ConversionAttempt,
     ExclusiveContent, ContentFormat, InsightType, ContentPlan
+    ConversionAttempt,
+    PublishedContent,
 )
-from anthropic import Anthropic
-from config.config import settings
 
 
 class StrategyTuningAgent(BaseAgent):
@@ -42,7 +44,7 @@ class StrategyTuningAgent(BaseAgent):
         self.confidence_level = settings.strategy_tuning_confidence_level
         self.max_adjustments_per_run = settings.strategy_tuning_max_adjustments_per_run
 
-    async def execute(self) -> Dict:
+    async def execute(self) -> dict:
         """
         Execute strategy optimization.
 
@@ -55,7 +57,7 @@ class StrategyTuningAgent(BaseAgent):
             "analyses_performed": 0,
             "adjustments_made": 0,
             "recommendations": [],
-            "performance_improvements": []
+            "performance_improvements": [],
         }
 
         try:
@@ -72,11 +74,13 @@ class StrategyTuningAgent(BaseAgent):
             results["analyses_performed"] += 1
 
             # Generate tuning recommendations using AI
-            recommendations = await self._generate_tuning_recommendations({
-                "content": content_analysis,
-                "conversion": conversion_analysis,
-                "timing": timing_analysis
-            })
+            recommendations = await self._generate_tuning_recommendations(
+                {
+                    "content": content_analysis,
+                    "conversion": conversion_analysis,
+                    "timing": timing_analysis,
+                }
+            )
 
             results["recommendations"] = recommendations
 
@@ -96,7 +100,7 @@ class StrategyTuningAgent(BaseAgent):
 
         return results
 
-    async def _analyze_content_performance(self) -> Dict:
+    async def _analyze_content_performance(self) -> dict:
         """
         Analyze which content performs best.
 
@@ -105,13 +109,19 @@ class StrategyTuningAgent(BaseAgent):
         """
         self.log_info("Analyzing content performance...")
 
-        cutoff = datetime.utcnow() - timedelta(days=30)
+        cutoff = datetime.now(tz=timezone.utc) - timedelta(days=30)
 
         with get_db() as db:
             # Check if we have enough data
             content_count = db.query(func.count(PublishedContent.id)).filter(
                 PublishedContent.published_at >= cutoff
             ).scalar()
+            content_items = (
+                db.query(PublishedContent)
+                .join(PublishedContent.content_plan)
+                .filter(PublishedContent.published_at >= cutoff)
+                .all()
+            )
 
             if content_count < self.min_data_points:
                 return {
@@ -135,6 +145,58 @@ class StrategyTuningAgent(BaseAgent):
             ).group_by(
                 ContentPlan.format
             ).all()
+                    "message": f"Need {self.min_data_points} data points, have {len(content_items)}",
+                }
+
+            # Analyze by format
+            format_performance = {}
+
+            for content in content_items:
+                fmt = content.content_plan.format.value
+
+                if fmt not in format_performance:
+                    format_performance[fmt] = {
+                        "count": 0,
+                        "total_engagement": 0,
+                        "avg_engagement_rate": 0,
+                        "best_performing_assets": [],
+                    }
+
+                format_performance[fmt]["count"] += 1
+
+                engagement = (
+                    (content.likes or 0) + (content.comments or 0) * 2 + (content.shares or 0) * 3
+                )
+
+                format_performance[fmt]["total_engagement"] += engagement
+
+            # Calculate averages
+            for fmt in format_performance:
+                count = format_performance[fmt]["count"]
+
+                if count > 0:
+                    format_performance[fmt]["avg_engagement_rate"] = (
+                        format_performance[fmt]["total_engagement"] / count
+                    )
+
+            # Analyze by insight type
+            insight_performance = {}
+
+            for content in content_items:
+                if not content.content_plan or not content.content_plan.insight:
+                    continue
+
+                insight_type = content.content_plan.insight.type.value
+
+                if insight_type not in insight_performance:
+                    insight_performance[insight_type] = {
+                        "count": 0,
+                        "total_engagement": 0,
+                        "avg_engagement_rate": 0,
+                        "hit_rate": 0,  # Placeholder for signal accuracy
+                    }
+
+                insight_performance[insight_type]["count"] += 1
 
             format_performance = {
                 stat.format.value: {
@@ -175,9 +237,10 @@ class StrategyTuningAgent(BaseAgent):
                 "format_performance": format_performance,
                 "insight_performance": insight_performance,
                 "total_content_analyzed": content_count
+                "total_content_analyzed": len(content_items),
             }
 
-    async def _analyze_conversion_performance(self) -> Dict:
+    async def _analyze_conversion_performance(self) -> dict:
         """
         Analyze conversion funnel performance.
 
@@ -186,12 +249,10 @@ class StrategyTuningAgent(BaseAgent):
         """
         self.log_info("Analyzing conversion performance...")
 
-        cutoff = datetime.utcnow() - timedelta(days=30)
+        cutoff = datetime.now(tz=timezone.utc) - timedelta(days=30)
 
         with get_db() as db:
-            attempts = db.query(ConversionAttempt).filter(
-                ConversionAttempt.sent_at >= cutoff
-            ).all()
+            attempts = db.query(ConversionAttempt).filter(ConversionAttempt.sent_at >= cutoff).all()
 
             if not attempts:
                 return {"insufficient_data": True}
@@ -213,7 +274,7 @@ class StrategyTuningAgent(BaseAgent):
                     discount_performance[discount] = {
                         "count": 0,
                         "conversions": 0,
-                        "conversion_rate": 0
+                        "conversion_rate": 0,
                     }
 
                 discount_performance[discount]["count"] += 1
@@ -234,10 +295,10 @@ class StrategyTuningAgent(BaseAgent):
                 "overall_conversion_rate": conversion_rate,
                 "overall_click_rate": click_rate,
                 "discount_performance": discount_performance,
-                "total_attempts_analyzed": total
+                "total_attempts_analyzed": total,
             }
 
-    async def _analyze_optimal_posting_times(self) -> Dict:
+    async def _analyze_optimal_posting_times(self) -> dict:
         """
         Analyze which posting times get best engagement.
 
@@ -246,12 +307,12 @@ class StrategyTuningAgent(BaseAgent):
         """
         self.log_info("Analyzing optimal posting times...")
 
-        cutoff = datetime.utcnow() - timedelta(days=30)
+        cutoff = datetime.now(tz=timezone.utc) - timedelta(days=30)
 
         with get_db() as db:
-            content_items = db.query(PublishedContent).filter(
-                PublishedContent.published_at >= cutoff
-            ).all()
+            content_items = (
+                db.query(PublishedContent).filter(PublishedContent.published_at >= cutoff).all()
+            )
 
             if not content_items:
                 return {"insufficient_data": True}
@@ -266,13 +327,11 @@ class StrategyTuningAgent(BaseAgent):
                     hourly_performance[hour] = {
                         "count": 0,
                         "total_engagement_rate": 0,
-                        "avg_engagement_rate": 0
+                        "avg_engagement_rate": 0,
                     }
 
                 hourly_performance[hour]["count"] += 1
-                hourly_performance[hour]["total_engagement_rate"] += (
-                    content.engagement_rate or 0
-                )
+                hourly_performance[hour]["total_engagement_rate"] += content.engagement_rate or 0
 
             # Calculate averages
             for hour in hourly_performance:
@@ -285,9 +344,7 @@ class StrategyTuningAgent(BaseAgent):
 
             # Find best hours
             sorted_hours = sorted(
-                hourly_performance.items(),
-                key=lambda x: x[1]["avg_engagement_rate"],
-                reverse=True
+                hourly_performance.items(), key=lambda x: x[1]["avg_engagement_rate"], reverse=True
             )
 
             best_hours = [hour for hour, _ in sorted_hours[:5]]
@@ -295,10 +352,10 @@ class StrategyTuningAgent(BaseAgent):
             return {
                 "hourly_performance": hourly_performance,
                 "best_posting_hours": best_hours,
-                "worst_posting_hours": [hour for hour, _ in sorted_hours[-3:]]
+                "worst_posting_hours": [hour for hour, _ in sorted_hours[-3:]],
             }
 
-    async def _generate_tuning_recommendations(self, analyses: Dict) -> List[Dict]:
+    async def _generate_tuning_recommendations(self, analyses: dict) -> list[dict]:
         """
         Use AI to generate strategic tuning recommendations.
 
@@ -337,7 +394,7 @@ Format as JSON array:
             message = self.llm_client.messages.create(
                 model="claude-3-5-sonnet-20241022",
                 max_tokens=1500,
-                messages=[{"role": "user", "content": prompt}]
+                messages=[{"role": "user", "content": prompt}],
             )
 
             response_text = message.content[0].text.strip()
@@ -345,12 +402,10 @@ Format as JSON array:
             # Parse JSON response
             try:
                 # Extract JSON from response
-                start_idx = response_text.find('[')
-                end_idx = response_text.rfind(']') + 1
+                start_idx = response_text.find("[")
+                end_idx = response_text.rfind("]") + 1
                 json_str = response_text[start_idx:end_idx]
-                recommendations = json.loads(json_str)
-
-                return recommendations
+                return json.loads(json_str)
 
             except json.JSONDecodeError as e:
                 self.log_error(f"Failed to parse AI recommendations: {e}")
@@ -360,10 +415,7 @@ Format as JSON array:
             self.log_error(f"Error generating recommendations: {e}")
             return []
 
-    async def _apply_strategy_adjustments(
-        self,
-        recommendations: List[Dict]
-    ) -> List[Dict]:
+    async def _apply_strategy_adjustments(self, recommendations: list[dict]) -> list[dict]:
         """
         Apply high-confidence strategy adjustments.
 
@@ -390,23 +442,24 @@ Format as JSON array:
             success = await self._apply_adjustment(rec)
 
             if success:
-                applied.append({
-                    "action": rec["action"],
-                    "adjustment": rec["adjustment"],
-                    "expected_impact": rec["expected_impact"],
-                    "applied_at": datetime.utcnow().isoformat()
-                })
+                applied.append(
+                    {
+                        "action": rec["action"],
+                        "adjustment": rec["adjustment"],
+                        "expected_impact": rec["expected_impact"],
+                        "applied_at": datetime.now(tz=timezone.utc).isoformat(),
+                    }
+                )
 
                 adjustment_count += 1
 
                 self.log_info(
-                    f"Applied adjustment: {rec['action']} "
-                    f"(confidence: {rec['confidence']:.0%})"
+                    f"Applied adjustment: {rec['action']} " f"(confidence: {rec['confidence']:.0%})"
                 )
 
         return applied
 
-    async def _apply_adjustment(self, recommendation: Dict) -> bool:
+    async def _apply_adjustment(self, recommendation: dict) -> bool:
         """
         Apply a specific adjustment.
 
@@ -423,8 +476,7 @@ Format as JSON array:
         # For now, we'll log what would be changed
 
         self.log_info(
-            f"Would apply adjustment: {action}\n"
-            f"Parameters: {json.dumps(adjustment, indent=2)}"
+            f"Would apply adjustment: {action}\n" f"Parameters: {json.dumps(adjustment, indent=2)}"
         )
 
         # Store adjustment in database for tracking
@@ -432,7 +484,7 @@ Format as JSON array:
 
         return True
 
-    async def get_tuning_history(self, days: int = 30) -> Dict:
+    async def get_tuning_history(self, days: int = 30) -> dict:
         """
         Get history of tuning adjustments.
 
@@ -448,5 +500,5 @@ Format as JSON array:
             "period_days": days,
             "total_adjustments": 0,
             "adjustments": [],
-            "performance_trend": "improving"
+            "performance_trend": "improving",
         }

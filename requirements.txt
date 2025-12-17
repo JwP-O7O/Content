@@ -1,3 +1,6 @@
+# API
+Flask==2.3.3
+
 # Core Dependencies
 python-dotenv==1.0.0
 pydantic==2.5.0
@@ -35,8 +38,3 @@ loguru==0.7.2
 # Phase 3 - Monetization & Community
 stripe==7.8.0
 discord.py==2.3.2
-
-# Testing
-pytest==7.4.3
-pytest-asyncio==0.21.1
-pytest-mock==3.12.0

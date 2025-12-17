@@ -1,16 +1,14 @@
 """MarketScannerAgent - Continuously scans markets for data."""
 
 import asyncio
-from typing import Dict, List
-from datetime import datetime
 
+from config.config import settings
 from src.agents.base_agent import BaseAgent
-from src.database.connection import get_db
-from src.database.models import MarketData, NewsArticle, SentimentData
 from src.api_integrations.exchange_api import ExchangeAPI
 from src.api_integrations.news_api import NewsAPI
 from src.api_integrations.twitter_api import TwitterAPI
-from config.config import settings
+from src.database.connection import get_db
+from src.database.models import MarketData, NewsArticle, SentimentData
 
 
 class MarketScannerAgent(BaseAgent):
@@ -30,8 +28,7 @@ class MarketScannerAgent(BaseAgent):
 
         # Initialize API clients
         self.exchange_api = ExchangeAPI(
-            api_key=settings.binance_api_key,
-            api_secret=settings.binance_api_secret
+            api_key=settings.binance_api_key, api_secret=settings.binance_api_secret
         )
         self.news_api = NewsAPI()
 
@@ -42,19 +39,25 @@ class MarketScannerAgent(BaseAgent):
                 api_secret=settings.twitter_api_secret,
                 access_token=settings.twitter_access_token,
                 access_token_secret=settings.twitter_access_token_secret,
-                bearer_token=settings.twitter_bearer_token
+                bearer_token=settings.twitter_bearer_token,
             )
-        except:
-            self.log_warning("Twitter API not configured - sentiment scanning disabled")
+        except Exception as e:
+            self.log_warning(f"Twitter API not configured - sentiment scanning disabled: {e}")
             self.twitter_api = None
 
         # Assets to monitor
         self.monitored_assets = [
-            "BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT",
-            "ADAUSDT", "XRPUSDT", "DOGEUSDT", "MATICUSDT"
+            "BTCUSDT",
+            "ETHUSDT",
+            "SOLUSDT",
+            "BNBUSDT",
+            "ADAUSDT",
+            "XRPUSDT",
+            "DOGEUSDT",
+            "MATICUSDT",
         ]
 
-    async def execute(self) -> Dict:
+    async def execute(self) -> dict:
         """
         Execute the market scanning process.
 
@@ -67,15 +70,11 @@ class MarketScannerAgent(BaseAgent):
             "market_data_collected": 0,
             "news_articles_collected": 0,
             "sentiment_data_collected": 0,
-            "errors": []
+            "errors": [],
         }
 
         # Run all scanning tasks in parallel
-        tasks = [
-            self._scan_market_data(),
-            self._scan_news(),
-            self._scan_sentiment()
-        ]
+        tasks = [self._scan_market_data(), self._scan_news(), self._scan_sentiment()]
 
         scan_results = await asyncio.gather(*tasks, return_exceptions=True)
 
@@ -83,13 +82,12 @@ class MarketScannerAgent(BaseAgent):
         for i, result in enumerate(scan_results):
             if isinstance(result, Exception):
                 results["errors"].append(str(result))
-            else:
-                if i == 0:  # Market data
-                    results["market_data_collected"] = result
-                elif i == 1:  # News
-                    results["news_articles_collected"] = result
-                elif i == 2:  # Sentiment
-                    results["sentiment_data_collected"] = result
+            elif i == 0:  # Market data
+                results["market_data_collected"] = result
+            elif i == 1:  # News
+                results["news_articles_collected"] = result
+            elif i == 2:  # Sentiment
+                results["sentiment_data_collected"] = result
 
         self.log_info(
             f"Market scan complete: "
@@ -125,7 +123,7 @@ class MarketScannerAgent(BaseAgent):
                             price=ticker_data["price"],
                             volume_24h=ticker_data["volume_24h"],
                             price_change_24h=ticker_data["price_change_24h"],
-                            raw_data=ticker_data["raw_data"]
+                            raw_data=ticker_data["raw_data"],
                         )
 
                         db.add(market_data)
@@ -167,9 +165,9 @@ class MarketScannerAgent(BaseAgent):
             with get_db() as db:
                 for article_data in articles:
                     # Check if article already exists
-                    existing = db.query(NewsArticle).filter(
-                        NewsArticle.url == article_data["url"]
-                    ).first()
+                    existing = (
+                        db.query(NewsArticle).filter(NewsArticle.url == article_data["url"]).first()
+                    )
 
                     if not existing:
                         article = NewsArticle(
@@ -178,7 +176,7 @@ class MarketScannerAgent(BaseAgent):
                             source=article_data["source"],
                             published_at=article_data["published_at"],
                             content=article_data["content"],
-                            summary=article_data["summary"]
+                            summary=article_data["summary"],
                         )
 
                         db.add(article)
@@ -219,7 +217,7 @@ class MarketScannerAgent(BaseAgent):
                             asset=asset,
                             sentiment_score=0,  # Will be enhanced later with NLP
                             volume=sentiment_data["volume"],
-                            raw_data=sentiment_data
+                            raw_data=sentiment_data,
                         )
 
                         db.add(sentiment)
@@ -236,7 +234,7 @@ class MarketScannerAgent(BaseAgent):
 
         return count
 
-    async def scan_specific_asset(self, asset: str) -> Dict:
+    async def scan_specific_asset(self, asset: str) -> dict:
         """
         Perform a targeted scan for a specific asset.
 

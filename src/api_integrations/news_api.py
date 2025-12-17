@@ -1,9 +1,8 @@
 """News API integration for crypto news."""
 
-import aiohttp
+from datetime import datetime, timedelta, timezone
+
 import feedparser
-from typing import List, Dict
-from datetime import datetime, timedelta
 from loguru import logger
 
 
@@ -23,7 +22,7 @@ class NewsAPI:
             "https://decrypt.co/feed",
         ]
 
-    async def fetch_latest_news(self, max_articles: int = 20) -> List[Dict]:
+    async def fetch_latest_news(self, max_articles: int = 20) -> list[dict]:
         """
         Fetch the latest crypto news from multiple sources.
 
@@ -39,7 +38,7 @@ class NewsAPI:
             try:
                 feed = feedparser.parse(feed_url)
 
-                for entry in feed.entries[:max_articles // len(self.rss_feeds)]:
+                for entry in feed.entries[: max_articles // len(self.rss_feeds)]:
                     article = {
                         "title": entry.get("title", ""),
                         "url": entry.get("link", ""),
@@ -48,7 +47,7 @@ class NewsAPI:
                         "summary": entry.get("summary", ""),
                         "content": entry.get("content", [{}])[0].get("value", "")
                         if entry.get("content")
-                        else entry.get("description", "")
+                        else entry.get("description", ""),
                     }
                     all_articles.append(article)
 
@@ -73,11 +72,12 @@ class NewsAPI:
         """
         try:
             from dateutil import parser
-            return parser.parse(date_string)
-        except:
-            return datetime.utcnow()
 
-    async def search_news(self, keyword: str, days_back: int = 7) -> List[Dict]:
+            return parser.parse(date_string)
+        except (ValueError, ImportError, TypeError):
+            return datetime.now(tz=timezone.utc)
+
+    async def search_news(self, keyword: str, days_back: int = 7) -> list[dict]:
         """
         Search for news articles containing a specific keyword.
 
@@ -89,13 +89,14 @@ class NewsAPI:
             List of matching articles
         """
         all_news = await self.fetch_latest_news(max_articles=50)
-        cutoff_date = datetime.utcnow() - timedelta(days=days_back)
+        cutoff_date = datetime.now(tz=timezone.utc) - timedelta(days=days_back)
 
-        matching_articles = [
-            article for article in all_news
+        return [
+            article
+            for article in all_news
             if keyword.lower() in article["title"].lower()
-            or keyword.lower() in article["summary"].lower()
-            and article["published_at"] >= cutoff_date
+            or (
+                keyword.lower() in article["summary"].lower()
+                and article["published_at"] >= cutoff_date
+            )
         ]
-
-        return matching_articles

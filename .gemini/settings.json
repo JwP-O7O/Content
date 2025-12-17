@@ -1,0 +1,11 @@
+{
+  "general": {
+    "previewFeatures": true,
+    "sessionRetention": {
+      "enabled": true
+    }
+  },
+  "output": {
+    "format": "text"
+  }
+}

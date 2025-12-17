@@ -1,17 +1,18 @@
 """ConversionAgent - Converts highly engaged users to paying members."""
 
-import asyncio
-from typing import Dict, List
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+
 from anthropic import Anthropic
 from sqlalchemy import func, case
 from sqlalchemy.orm import joinedload
 
+from config.config import settings
 from src.agents.base_agent import BaseAgent
-from src.database.connection import get_db
-from src.database.models import CommunityUser, UserInteraction, ConversionAttempt, UserTier
-from src.api_integrations.twitter_api import TwitterAPI
 from src.api_integrations.stripe_api import StripeAPI
+from src.api_integrations.twitter_api import TwitterAPI
+from src.database.connection import get_db
+from src.database.models import CommunityUser, ConversionAttempt, UserInteraction, UserTier
+from src.utils.interaction_manager import InteractionManager
 from config.config import settings
 
 
@@ -20,7 +21,7 @@ class ConversionAgent(BaseAgent):
     The Conversion Agent identifies and converts highly engaged users.
 
     Responsibilities:
-    - Calculate engagement scores for all users
+    - Apply time-decay to engagement scores (maintenance)
     - Identify highly engaged free users
     - Generate personalized DMs with discount offers
     - Track conversion attempts and outcomes
@@ -48,7 +49,7 @@ class ConversionAgent(BaseAgent):
                 api_secret=settings.twitter_api_secret,
                 access_token=settings.twitter_access_token,
                 access_token_secret=settings.twitter_access_token_secret,
-                bearer_token=settings.twitter_bearer_token
+                bearer_token=settings.twitter_bearer_token,
             )
         except Exception as e:
             self.log_warning(f"Twitter API not configured: {e}")
@@ -74,7 +75,7 @@ class ConversionAgent(BaseAgent):
         self.dm_cooldown_days = settings.conversion_dm_cooldown_days
         self.max_dms_per_run = 10
 
-    async def execute(self) -> Dict:
+    async def execute(self) -> dict:
         """
         Execute the conversion process.
 
@@ -88,12 +89,12 @@ class ConversionAgent(BaseAgent):
             "high_engagement_users": 0,
             "dms_sent": 0,
             "discount_codes_created": 0,
-            "errors": []
+            "errors": [],
         }
 
         try:
-            # Update engagement scores for all users
-            await self._update_engagement_scores()
+            # Apply decay to engagement scores (keeps data fresh)
+            await self._decay_engagement_scores()
 
             # Identify conversion candidates
             candidates = await self._identify_conversion_candidates()
@@ -113,7 +114,7 @@ class ConversionAgent(BaseAgent):
             # Send conversion DMs
             dm_count = 0
 
-            for user in candidates[:self.max_dms_per_run]:
+            for user in candidates[: self.max_dms_per_run]:
                 try:
                     success = await self._send_conversion_dm(user, discount_code)
 
@@ -138,9 +139,9 @@ class ConversionAgent(BaseAgent):
 
         return results
 
-    async def _update_engagement_scores(self):
-        """Update engagement scores for all users based on their interactions."""
-        self.log_info("Updating engagement scores...")
+    async def _decay_engagement_scores(self):
+        """Apply decay to engagement scores to prioritize recent activity."""
+        self.log_info("Applying engagement score decay...")
 
         cutoff = datetime.utcnow() - timedelta(days=30)
 
@@ -168,6 +169,18 @@ class ConversionAgent(BaseAgent):
             ).group_by(
                 UserInteraction.user_id
             ).all()
+        with get_db() as db:
+            users = db.query(CommunityUser).all()
+
+            for user in users:
+                # Get user's interactions from last 30 days
+                cutoff = datetime.now(tz=timezone.utc) - timedelta(days=30)
+
+                interactions = (
+                    db.query(UserInteraction)
+                    .filter(UserInteraction.user_id == user.id, UserInteraction.timestamp >= cutoff)
+                    .all()
+                )
 
             # Create a lookup dict for O(1) access
             stats_by_user = {
@@ -198,7 +211,7 @@ class ConversionAgent(BaseAgent):
 
             db.commit()
 
-    def _calculate_engagement_score(self, interactions: List[UserInteraction]) -> float:
+    def _calculate_engagement_score(self, interactions: list[UserInteraction]) -> float:
         """
         Calculate engagement score based on interactions.
 
@@ -212,14 +225,7 @@ class ConversionAgent(BaseAgent):
             return 0
 
         # Weight different interaction types
-        weights = {
-            "like": 1,
-            "reply": 3,
-            "retweet": 2,
-            "quote": 4,
-            "dm_open": 5,
-            "dm_click": 10
-        }
+        weights = {"like": 1, "reply": 3, "retweet": 2, "quote": 4, "dm_open": 5, "dm_click": 10}
 
         total_value = sum(
             weights.get(interaction.interaction_type, 1) * interaction.engagement_value
@@ -230,8 +236,13 @@ class ConversionAgent(BaseAgent):
         score = min(100, (total_value / 50) * 100)
 
         return round(score, 2)
+        try:
+            with get_db() as db:
+                InteractionManager.decay_scores(db, decay_factor=0.95)
+        except Exception as e:
+            self.log_error(f"Error decaying scores: {e}")
 
-    async def _identify_conversion_candidates(self) -> List[CommunityUser]:
+    async def _identify_conversion_candidates(self) -> list[CommunityUser]:
         """
         Identify users who are good candidates for conversion.
 
@@ -242,24 +253,27 @@ class ConversionAgent(BaseAgent):
 
         with get_db() as db:
             # Find highly engaged FREE users who haven't been DMed recently
-            cooldown_cutoff = datetime.utcnow() - timedelta(days=self.dm_cooldown_days)
+            cooldown_cutoff = datetime.now(tz=timezone.utc) - timedelta(days=self.dm_cooldown_days)
 
-            candidates = db.query(CommunityUser).filter(
-                CommunityUser.tier == UserTier.FREE,
-                CommunityUser.engagement_score >= self.min_engagement_score,
-                CommunityUser.subscription_status == "inactive",
-                # Either never DMed or DMed long ago
-                (CommunityUser.conversion_dm_sent == False) |
-                (CommunityUser.conversion_dm_sent_at < cooldown_cutoff)
-            ).order_by(
-                CommunityUser.engagement_score.desc()
-            ).all()
+            candidates = (
+                db.query(CommunityUser)
+                .filter(
+                    CommunityUser.tier == UserTier.FREE,
+                    CommunityUser.engagement_score >= self.min_engagement_score,
+                    CommunityUser.subscription_status == "inactive",
+                    # Either never DMed or DMed long ago
+                    (CommunityUser.conversion_dm_sent.is_(False))
+                    | (CommunityUser.conversion_dm_sent_at < cooldown_cutoff),
+                )
+                .order_by(CommunityUser.engagement_score.desc())
+                .all()
+            )
 
             self.log_info(f"Found {len(candidates)} conversion candidates")
 
             return candidates
 
-    async def _create_discount_code(self) -> Dict:
+    async def _create_discount_code(self) -> dict:
         """
         Create a time-limited discount code.
 
@@ -274,12 +288,11 @@ class ConversionAgent(BaseAgent):
             coupon = self.stripe_api.create_discount_code(
                 percent_off=self.discount_percentage,
                 duration="once",
-                max_redemptions=self.max_dms_per_run
+                max_redemptions=self.max_dms_per_run,
             )
 
             self.log_info(
-                f"Created discount code: {coupon['id']} "
-                f"({self.discount_percentage}% off)"
+                f"Created discount code: {coupon['id']} " f"({self.discount_percentage}% off)"
             )
 
             return coupon
@@ -288,11 +301,7 @@ class ConversionAgent(BaseAgent):
             self.log_error(f"Error creating discount code: {e}")
             return None
 
-    async def _send_conversion_dm(
-        self,
-        user: CommunityUser,
-        discount_code: Dict
-    ) -> bool:
+    async def _send_conversion_dm(self, user: CommunityUser, discount_code: dict) -> bool:
         """
         Send a personalized conversion DM to a user.
 
@@ -319,9 +328,9 @@ class ConversionAgent(BaseAgent):
                 metadata={
                     "user_id": user.id,
                     "twitter_id": user.twitter_id,
-                    "source": "conversion_agent"
+                    "source": "conversion_agent",
                 },
-                discount_code=discount_code['id']
+                discount_code=discount_code["id"],
             )
 
         # Add payment link to message
@@ -330,9 +339,7 @@ class ConversionAgent(BaseAgent):
 
         # In practice, send actual DM via Twitter API
         # For now, we'll log it
-        self.log_info(
-            f"Would send conversion DM to {user.twitter_username}:\n{message}"
-        )
+        self.log_info(f"Would send conversion DM to {user.twitter_username}:\n{message}")
 
         # Track the conversion attempt
         with get_db() as db:
@@ -340,26 +347,22 @@ class ConversionAgent(BaseAgent):
                 user_id=user.id,
                 platform="twitter",
                 message_text=message,
-                discount_code=discount_code['id'] if discount_code else None,
+                discount_code=discount_code["id"] if discount_code else None,
                 discount_percentage=self.discount_percentage,
-                status="sent"
+                status="sent",
             )
 
             db.add(attempt)
 
             # Update user
             user.conversion_dm_sent = True
-            user.conversion_dm_sent_at = datetime.utcnow()
+            user.conversion_dm_sent_at = datetime.now(tz=timezone.utc)
 
             db.commit()
 
         return True
 
-    async def _generate_conversion_message(
-        self,
-        user: CommunityUser,
-        discount_code: Dict
-    ) -> str:
+    async def _generate_conversion_message(self, user: CommunityUser, discount_code: dict) -> str:
         """
         Generate a personalized conversion message using LLM.
 
@@ -395,7 +398,7 @@ DM:"""
             message = self.llm_client.messages.create(
                 model="claude-3-5-sonnet-20241022",
                 max_tokens=200,
-                messages=[{"role": "user", "content": prompt}]
+                messages=[{"role": "user", "content": prompt}],
             )
 
             dm_text = message.content[0].text.strip()
@@ -419,11 +422,7 @@ DM:"""
                 f"Interested in getting early alpha signals?"
             )
 
-    async def track_conversion_success(
-        self,
-        user_id: int,
-        stripe_customer_id: str
-    ):
+    async def track_conversion_success(self, user_id: int, stripe_customer_id: str):
         """
         Track when a user successfully converts to paying member.
 
@@ -432,34 +431,32 @@ DM:"""
             stripe_customer_id: Stripe customer ID
         """
         with get_db() as db:
-            user = db.query(CommunityUser).filter(
-                CommunityUser.id == user_id
-            ).first()
+            user = db.query(CommunityUser).filter(CommunityUser.id == user_id).first()
 
             if user:
                 user.tier = UserTier.BASIC
                 user.subscription_status = "active"
-                user.converted_at = datetime.utcnow()
+                user.converted_at = datetime.now(tz=timezone.utc)
 
                 # Update conversion attempt status
-                attempt = db.query(ConversionAttempt).filter(
-                    ConversionAttempt.user_id == user_id,
-                    ConversionAttempt.status == "sent"
-                ).order_by(
-                    ConversionAttempt.sent_at.desc()
-                ).first()
+                attempt = (
+                    db.query(ConversionAttempt)
+                    .filter(
+                        ConversionAttempt.user_id == user_id, ConversionAttempt.status == "sent"
+                    )
+                    .order_by(ConversionAttempt.sent_at.desc())
+                    .first()
+                )
 
                 if attempt:
                     attempt.status = "converted"
-                    attempt.converted_at = datetime.utcnow()
+                    attempt.converted_at = datetime.now(tz=timezone.utc)
 
                 db.commit()
 
-                self.log_info(
-                    f"User {user.twitter_username} successfully converted! 🎉"
-                )
+                self.log_info(f"User {user.twitter_username} successfully converted! 🎉")
 
-    async def get_conversion_metrics(self, days: int = 30) -> Dict:
+    async def get_conversion_metrics(self, days: int = 30) -> dict:
         """
         Get conversion metrics for the last N days.
 
@@ -469,12 +466,10 @@ DM:"""
         Returns:
             Dictionary with conversion metrics
         """
-        cutoff = datetime.utcnow() - timedelta(days=days)
+        cutoff = datetime.now(tz=timezone.utc) - timedelta(days=days)
 
         with get_db() as db:
-            attempts = db.query(ConversionAttempt).filter(
-                ConversionAttempt.sent_at >= cutoff
-            ).all()
+            attempts = db.query(ConversionAttempt).filter(ConversionAttempt.sent_at >= cutoff).all()
 
             total_attempts = len(attempts)
             converted = len([a for a in attempts if a.status == "converted"])
@@ -491,5 +486,5 @@ DM:"""
                 "conversions": converted,
                 "conversion_rate": round(conversion_rate, 2),
                 "open_rate": round(open_rate, 2),
-                "click_rate": round(click_rate, 2)
+                "click_rate": round(click_rate, 2),
             }

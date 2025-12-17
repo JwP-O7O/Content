@@ -1,11 +1,11 @@
 """Scheduler for running agents periodically."""
 
+import asyncio
+
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.interval import IntervalTrigger
-from datetime import datetime
 from loguru import logger
-import asyncio
 
 from src.orchestrator import AgentOrchestrator
 from src.utils.logger import setup_logger
@@ -43,7 +43,7 @@ class ContentCreatorScheduler:
             trigger=IntervalTrigger(minutes=30),
             id="market_scan",
             name="Market Scanner",
-            replace_existing=True
+            replace_existing=True,
         )
 
         # Full analysis pipeline - every 2 hours
@@ -52,7 +52,7 @@ class ContentCreatorScheduler:
             trigger=IntervalTrigger(hours=2),
             id="analysis_pipeline",
             name="Analysis Pipeline",
-            replace_existing=True
+            replace_existing=True,
         )
 
         # Content creation - every 3 hours
@@ -61,7 +61,7 @@ class ContentCreatorScheduler:
             trigger=IntervalTrigger(hours=3),
             id="content_creation",
             name="Content Creation",
-            replace_existing=True
+            replace_existing=True,
         )
 
         if self.phase >= 4:
@@ -73,7 +73,7 @@ class ContentCreatorScheduler:
                 trigger=IntervalTrigger(hours=1),
                 id="engagement",
                 name="Engagement Pipeline",
-                replace_existing=True
+                replace_existing=True,
             )
 
             # Analytics collection - every 6 hours
@@ -82,7 +82,7 @@ class ContentCreatorScheduler:
                 trigger=IntervalTrigger(hours=6),
                 id="analytics",
                 name="Analytics Collection",
-                replace_existing=True
+                replace_existing=True,
             )
 
             # Content repurposing - daily at 10 AM UTC
@@ -91,7 +91,7 @@ class ContentCreatorScheduler:
                 trigger=CronTrigger(hour=10, minute=0),
                 id="content_repurposing",
                 name="Content Repurposing",
-                replace_existing=True
+                replace_existing=True,
             )
 
             # Conversion - every 4 hours
@@ -100,7 +100,7 @@ class ContentCreatorScheduler:
                 trigger=IntervalTrigger(hours=4),
                 id="conversion",
                 name="User Conversion",
-                replace_existing=True
+                replace_existing=True,
             )
 
             # Onboarding - every 2 hours
@@ -109,7 +109,7 @@ class ContentCreatorScheduler:
                 trigger=IntervalTrigger(hours=2),
                 id="onboarding",
                 name="Member Onboarding",
-                replace_existing=True
+                replace_existing=True,
             )
 
             # Exclusive content - every 3 hours
@@ -118,7 +118,7 @@ class ContentCreatorScheduler:
                 trigger=IntervalTrigger(hours=3),
                 id="exclusive_content",
                 name="Exclusive Content",
-                replace_existing=True
+                replace_existing=True,
             )
 
             # Community moderation - every 30 minutes
@@ -127,7 +127,7 @@ class ContentCreatorScheduler:
                 trigger=IntervalTrigger(minutes=30),
                 id="moderation",
                 name="Community Moderation",
-                replace_existing=True
+                replace_existing=True,
             )
 
             # Performance Analytics - every 12 hours
@@ -136,7 +136,7 @@ class ContentCreatorScheduler:
                 trigger=IntervalTrigger(hours=12),
                 id="performance_analytics",
                 name="Performance Analytics",
-                replace_existing=True
+                replace_existing=True,
             )
 
             # A/B Testing - every 8 hours
@@ -145,7 +145,7 @@ class ContentCreatorScheduler:
                 trigger=IntervalTrigger(hours=8),
                 id="ab_testing",
                 name="A/B Testing",
-                replace_existing=True
+                replace_existing=True,
             )
 
             # Strategy Tuning - daily at 2 AM UTC
@@ -154,7 +154,7 @@ class ContentCreatorScheduler:
                 trigger=CronTrigger(hour=2, minute=0),
                 id="strategy_tuning",
                 name="Strategy Tuning",
-                replace_existing=True
+                replace_existing=True,
             )
 
             # Feedback Loop - daily at 4 AM UTC (after strategy tuning)
@@ -163,7 +163,7 @@ class ContentCreatorScheduler:
                 trigger=CronTrigger(hour=4, minute=0),
                 id="feedback_loop",
                 name="Feedback Loop Coordination",
-                replace_existing=True
+                replace_existing=True,
             )
 
             # Full Phase 4 pipeline - daily at 6 AM UTC
@@ -172,7 +172,7 @@ class ContentCreatorScheduler:
                 trigger=CronTrigger(hour=6, minute=0),
                 id="daily_full_pipeline",
                 name="Daily Full Pipeline (Phase 4)",
-                replace_existing=True
+                replace_existing=True,
             )
 
             logger.info("Scheduled jobs configured (Phase 4):")
@@ -201,7 +201,7 @@ class ContentCreatorScheduler:
                 trigger=IntervalTrigger(hours=1),
                 id="engagement",
                 name="Engagement Pipeline",
-                replace_existing=True
+                replace_existing=True,
             )
 
             # Analytics collection - every 6 hours
@@ -210,7 +210,7 @@ class ContentCreatorScheduler:
                 trigger=IntervalTrigger(hours=6),
                 id="analytics",
                 name="Analytics Collection",
-                replace_existing=True
+                replace_existing=True,
             )
 
             # Content repurposing - daily at 10 AM UTC
@@ -219,7 +219,7 @@ class ContentCreatorScheduler:
                 trigger=CronTrigger(hour=10, minute=0),
                 id="content_repurposing",
                 name="Content Repurposing",
-                replace_existing=True
+                replace_existing=True,
             )
 
             # Conversion - every 4 hours
@@ -228,7 +228,7 @@ class ContentCreatorScheduler:
                 trigger=IntervalTrigger(hours=4),
                 id="conversion",
                 name="User Conversion",
-                replace_existing=True
+                replace_existing=True,
             )
 
             # Onboarding - every 2 hours
@@ -237,7 +237,7 @@ class ContentCreatorScheduler:
                 trigger=IntervalTrigger(hours=2),
                 id="onboarding",
                 name="Member Onboarding",
-                replace_existing=True
+                replace_existing=True,
             )
 
             # Exclusive content - every 3 hours
@@ -246,7 +246,7 @@ class ContentCreatorScheduler:
                 trigger=IntervalTrigger(hours=3),
                 id="exclusive_content",
                 name="Exclusive Content",
-                replace_existing=True
+                replace_existing=True,
             )
 
             # Community moderation - every 30 minutes
@@ -255,7 +255,7 @@ class ContentCreatorScheduler:
                 trigger=IntervalTrigger(minutes=30),
                 id="moderation",
                 name="Community Moderation",
-                replace_existing=True
+                replace_existing=True,
             )
 
             # Full Phase 3 pipeline - daily at 6 AM UTC
@@ -264,7 +264,7 @@ class ContentCreatorScheduler:
                 trigger=CronTrigger(hour=6, minute=0),
                 id="daily_full_pipeline",
                 name="Daily Full Pipeline (Phase 3)",
-                replace_existing=True
+                replace_existing=True,
             )
 
             logger.info("Scheduled jobs configured (Phase 3):")
@@ -289,7 +289,7 @@ class ContentCreatorScheduler:
                 trigger=IntervalTrigger(hours=1),
                 id="engagement",
                 name="Engagement Pipeline",
-                replace_existing=True
+                replace_existing=True,
             )
 
             # Analytics collection - every 6 hours
@@ -298,7 +298,7 @@ class ContentCreatorScheduler:
                 trigger=IntervalTrigger(hours=6),
                 id="analytics",
                 name="Analytics Collection",
-                replace_existing=True
+                replace_existing=True,
             )
 
             # Content repurposing - daily at 10 AM UTC
@@ -307,7 +307,7 @@ class ContentCreatorScheduler:
                 trigger=CronTrigger(hour=10, minute=0),
                 id="content_repurposing",
                 name="Content Repurposing",
-                replace_existing=True
+                replace_existing=True,
             )
 
             # Full Phase 2 pipeline - daily at 6 AM UTC
@@ -316,7 +316,7 @@ class ContentCreatorScheduler:
                 trigger=CronTrigger(hour=6, minute=0),
                 id="daily_full_pipeline",
                 name="Daily Full Pipeline (Phase 2)",
-                replace_existing=True
+                replace_existing=True,
             )
 
             logger.info("Scheduled jobs configured (Phase 2):")
@@ -335,7 +335,7 @@ class ContentCreatorScheduler:
                 trigger=CronTrigger(hour=6, minute=0),
                 id="daily_full_pipeline",
                 name="Daily Full Pipeline",
-                replace_existing=True
+                replace_existing=True,
             )
 
             logger.info("Scheduled jobs configured (Phase 1):")
@@ -377,15 +377,14 @@ class ContentCreatorScheduler:
 
         if job_id == "full_pipeline":
             return await self.orchestrator.run_full_pipeline()
-        elif job_id == "market_scan":
+        if job_id == "market_scan":
             return await self.orchestrator.run_market_scan_only()
-        elif job_id == "analysis":
+        if job_id == "analysis":
             return await self.orchestrator.run_analysis_only()
-        elif job_id == "content_creation":
+        if job_id == "content_creation":
             return await self.orchestrator.run_content_creation_pipeline()
-        else:
-            logger.error(f"Unknown job ID: {job_id}")
-            return None
+        logger.error(f"Unknown job ID: {job_id}")
+        return None
 
 
 async def main():

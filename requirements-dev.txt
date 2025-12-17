@@ -1,0 +1,29 @@
+# Development-only dependencies
+# Install with: pip install -r requirements-dev.txt
+
+# Include production requirements
+-r requirements.txt
+
+# Testing
+pytest==7.4.3
+pytest-asyncio==0.21.1
+pytest-mock==3.12.0
+pytest-cov==4.1.0  # Test coverage
+pytest-xdist==3.5.0  # Parallel test execution
+
+# Code Quality
+ruff==0.1.9  # Fast linter and formatter (replaces flake8, black, isort)
+mypy==1.7.1  # Type checking
+types-requests==2.31.0.10  # Type stubs for requests
+
+# Pre-commit hooks
+pre-commit==3.6.0
+
+# Documentation
+mkdocs==1.5.3  # Documentation generator
+mkdocs-material==9.5.3  # Material theme for MkDocs
+mkdocstrings[python]==0.24.0  # Auto-generate docs from docstrings
+
+# Development tools
+ipython==8.19.0  # Better REPL
+ipdb==0.13.13  # Debugger

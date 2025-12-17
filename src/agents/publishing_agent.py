@@ -1,15 +1,14 @@
 """PublishingAgent - Publishes content to various platforms."""
 
-import asyncio
-from typing import Dict, List, Optional
-from datetime import datetime
+from datetime import datetime, timezone
+from typing import Optional
 
-from src.agents.base_agent import BaseAgent
-from src.database.connection import get_db
-from src.database.models import ContentPlan, PublishedContent, ContentFormat
-from src.api_integrations.twitter_api import TwitterAPI
-from src.api_integrations.telegram_api import TelegramAPI
 from config.config import settings
+from src.agents.base_agent import BaseAgent
+from src.api_integrations.telegram_api import TelegramAPI
+from src.api_integrations.twitter_api import TwitterAPI
+from src.database.connection import get_db
+from src.database.models import ContentFormat, ContentPlan, PublishedContent
 
 
 class PublishingAgent(BaseAgent):
@@ -34,7 +33,7 @@ class PublishingAgent(BaseAgent):
                 api_secret=settings.twitter_api_secret,
                 access_token=settings.twitter_access_token,
                 access_token_secret=settings.twitter_access_token_secret,
-                bearer_token=settings.twitter_bearer_token
+                bearer_token=settings.twitter_bearer_token,
             )
         except Exception as e:
             self.log_warning(f"Twitter API not configured: {e}")
@@ -42,8 +41,7 @@ class PublishingAgent(BaseAgent):
 
         try:
             self.telegram_api = TelegramAPI(
-                bot_token=settings.telegram_bot_token,
-                channel_id=settings.telegram_channel_id
+                bot_token=settings.telegram_bot_token, channel_id=settings.telegram_channel_id
             )
         except Exception as e:
             self.log_warning(f"Telegram API not configured: {e}")
@@ -51,7 +49,7 @@ class PublishingAgent(BaseAgent):
 
         self.human_in_the_loop = settings.human_in_the_loop
 
-    async def execute(self) -> Dict:
+    async def execute(self) -> dict:
         """
         Execute the publishing process.
 
@@ -65,7 +63,7 @@ class PublishingAgent(BaseAgent):
             "twitter_posts": 0,
             "telegram_posts": 0,
             "awaiting_approval": 0,
-            "errors": []
+            "errors": [],
         }
 
         try:
@@ -108,13 +106,11 @@ class PublishingAgent(BaseAgent):
 
             if self.human_in_the_loop and results["awaiting_approval"] > 0:
                 self.log_info(
-                    f"{results['awaiting_approval']} content pieces "
-                    "awaiting human approval"
+                    f"{results['awaiting_approval']} content pieces " "awaiting human approval"
                 )
             else:
                 self.log_info(
-                    f"Publishing complete: {results['content_published']} "
-                    "pieces published"
+                    f"Publishing complete: {results['content_published']} " "pieces published"
                 )
 
         except Exception as e:
@@ -123,7 +119,7 @@ class PublishingAgent(BaseAgent):
 
         return results
 
-    async def _get_ready_plans(self) -> List[ContentPlan]:
+    async def _get_ready_plans(self) -> list[ContentPlan]:
         """
         Get content plans that are ready to publish.
 
@@ -132,14 +128,14 @@ class PublishingAgent(BaseAgent):
         """
         with get_db() as db:
             # Get plans that are ready and scheduled for now or earlier
-            now = datetime.utcnow()
+            now = datetime.now(tz=timezone.utc)
 
-            plans = db.query(ContentPlan).filter(
-                ContentPlan.status == "ready",
-                ContentPlan.scheduled_for <= now
-            ).limit(10).all()
-
-            return plans
+            return (
+                db.query(ContentPlan)
+                .filter(ContentPlan.status == "ready", ContentPlan.scheduled_for <= now)
+                .limit(10)
+                .all()
+            )
 
     def _mark_awaiting_approval(self, plan: ContentPlan):
         """Mark a content plan as awaiting approval."""
@@ -175,11 +171,10 @@ class PublishingAgent(BaseAgent):
         # Publish based on platform
         if plan.platform == "twitter":
             return await self._publish_to_twitter(plan)
-        elif "telegram" in plan.platform:
+        if "telegram" in plan.platform:
             return await self._publish_to_telegram(plan)
-        else:
-            self.log_warning(f"Unknown platform: {plan.platform}")
-            return False
+        self.log_warning(f"Unknown platform: {plan.platform}")
+        return False
 
     async def _publish_to_twitter(self, plan: ContentPlan) -> bool:
         """Publish content to Twitter."""
@@ -203,7 +198,7 @@ class PublishingAgent(BaseAgent):
                         plan=plan,
                         content_text=tweet_text,
                         post_url=result["url"],
-                        post_id=result["id"]
+                        post_id=result["id"],
                     )
                     return True
 
@@ -218,7 +213,7 @@ class PublishingAgent(BaseAgent):
                         plan=plan,
                         content_text="\n\n".join(thread_tweets),
                         post_url=result[0]["url"],
-                        post_id=result[0]["id"]
+                        post_id=result[0]["id"],
                     )
                     return True
 
@@ -241,9 +236,7 @@ class PublishingAgent(BaseAgent):
 
             if result:
                 self._save_published_content(
-                    plan=plan,
-                    content_text=message_text,
-                    post_id=str(result["message_id"])
+                    plan=plan, content_text=message_text, post_id=str(result["message_id"])
                 )
                 return True
 
@@ -263,7 +256,7 @@ class PublishingAgent(BaseAgent):
         insight = plan.insight
 
         # Simple template
-        template = (
+        return (
             f"${insight.asset} Alert\n\n"
             f"Detected: {insight.type.value}\n"
             f"Confidence: {insight.confidence:.0%}\n\n"
@@ -271,9 +264,7 @@ class PublishingAgent(BaseAgent):
             f"#crypto #{insight.asset}"
         )
 
-        return template
-
-    def _get_thread_tweets(self, plan: ContentPlan) -> List[str]:
+    def _get_thread_tweets(self, plan: ContentPlan) -> list[str]:
         """
         Get thread tweets for a plan.
 
@@ -281,28 +272,22 @@ class PublishingAgent(BaseAgent):
         """
         insight = plan.insight
 
-        tweets = [
+        return [
             f"${insight.asset} {insight.type.value.upper()} detected "
             f"(confidence: {insight.confidence:.0%}) 🚨",
-
             f"Analysis: {insight.details.get('llm_analysis', 'Market data analysis...')}",
-
             f"Key metrics:\n"
             f"• Confidence: {insight.confidence:.0%}\n"
             f"• Type: {insight.type.value}",
-
-            f"This is based on our proprietary analysis. "
-            f"Always DYOR! #crypto #{insight.asset}"
+            f"This is based on our proprietary analysis. " f"Always DYOR! #crypto #{insight.asset}",
         ]
-
-        return tweets
 
     def _save_published_content(
         self,
         plan: ContentPlan,
         content_text: str,
         post_url: Optional[str] = None,
-        post_id: Optional[str] = None
+        post_id: Optional[str] = None,
     ):
         """Save published content to the database."""
         with get_db() as db:
@@ -311,7 +296,7 @@ class PublishingAgent(BaseAgent):
                 platform=plan.platform,
                 content_text=content_text,
                 post_url=post_url,
-                post_id=post_id
+                post_id=post_id,
             )
 
             db.add(published)
@@ -335,9 +320,7 @@ class PublishingAgent(BaseAgent):
             True if published successfully
         """
         with get_db() as db:
-            plan = db.query(ContentPlan).filter(
-                ContentPlan.id == plan_id
-            ).first()
+            plan = db.query(ContentPlan).filter(ContentPlan.id == plan_id).first()
 
             if not plan:
                 self.log_error(f"Content plan {plan_id} not found")
@@ -345,8 +328,7 @@ class PublishingAgent(BaseAgent):
 
             if plan.status != "awaiting_approval":
                 self.log_warning(
-                    f"Content plan {plan_id} is not awaiting approval "
-                    f"(status: {plan.status})"
+                    f"Content plan {plan_id} is not awaiting approval " f"(status: {plan.status})"
                 )
                 return False
 
@@ -365,16 +347,14 @@ class PublishingAgent(BaseAgent):
             plan_id: ID of the content plan to reject
         """
         with get_db() as db:
-            plan = db.query(ContentPlan).filter(
-                ContentPlan.id == plan_id
-            ).first()
+            plan = db.query(ContentPlan).filter(ContentPlan.id == plan_id).first()
 
             if plan:
                 plan.status = "rejected"
                 db.commit()
                 self.log_info(f"Content plan {plan_id} rejected")
 
-    async def get_pending_approvals(self) -> List[Dict]:
+    async def get_pending_approvals(self) -> list[dict]:
         """
         Get all content plans awaiting approval.
 
@@ -382,9 +362,7 @@ class PublishingAgent(BaseAgent):
             List of content plans awaiting approval
         """
         with get_db() as db:
-            plans = db.query(ContentPlan).filter(
-                ContentPlan.status == "awaiting_approval"
-            ).all()
+            plans = db.query(ContentPlan).filter(ContentPlan.status == "awaiting_approval").all()
 
             return [
                 {
@@ -394,7 +372,7 @@ class PublishingAgent(BaseAgent):
                     "confidence": p.insight.confidence,
                     "platform": p.platform,
                     "format": p.format.value,
-                    "content_preview": self._get_content_text(p)[:200]
+                    "content_preview": self._get_content_text(p)[:200],
                 }
                 for p in plans
             ]

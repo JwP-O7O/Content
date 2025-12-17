@@ -1,10 +1,14 @@
 """ContentCreationAgent - Generates content based on insights and content plans."""
 
 import json
+
+from anthropic import Anthropic
 from typing import Dict, List
 
+from config.config import settings
 from src.agents.base_agent import BaseAgent
 from src.database.connection import get_db
+from src.database.models import ContentFormat, ContentPlan
 from src.database.models import ContentPlan, ContentFormat
 from src.utils.llm_client import llm_client
 from config.config import settings
@@ -47,12 +51,18 @@ class ContentCreationAgent(BaseAgent):
                 "You are a crypto educator. Your tone is helpful and informative. "
                 "You explain concepts clearly and help people learn. You're patient "
                 "and encouraging."
-            )
+            ),
         }
 
-    async def execute(self) -> Dict:
+    async def execute(self) -> dict:
+    async def execute(self, *args, **kwargs) -> Dict:
         """
         Execute content creation for pending content plans.
+
+        Args:
+            *args: Variable length argument list.
+            **kwargs: Arbitrary keyword arguments.
+                     - content_plan (list, optional): List of content items to process immediately.
 
         Returns:
             Dictionary with creation results
@@ -64,8 +74,71 @@ class ContentCreationAgent(BaseAgent):
             "tweets": 0,
             "threads": 0,
             "telegram_messages": 0,
-            "errors": []
+            "errors": [],
         }
+
+        # Check for direct input via kwargs (e.g., from orchestrator or helper script)
+        direct_content_plans = kwargs.get('content_plan') or kwargs.get('content_plans')
+
+        if direct_content_plans:
+            # Handle direct execution with provided plans (bypassing DB for immediate response)
+            self.log_info(f"Processing {len(direct_content_plans)} provided content plans directly")
+
+            for item in direct_content_plans:
+                try:
+                    # Map dictionary item to a mock plan/insight structure for generation
+                    # This is a bit of a hack to reuse existing generation methods
+
+                    # Determine format
+                    fmt = item.get('format', 'tweet').lower()
+                    if 'thread' in fmt:
+                        item_format = ContentFormat.THREAD
+                    elif 'telegram' in fmt:
+                        item_format = ContentFormat.TELEGRAM_MESSAGE
+                    elif 'blog' in fmt:
+                        item_format = ContentFormat.BLOG_POST
+                    else:
+                        item_format = ContentFormat.SINGLE_TWEET
+
+                    # Create a MockInsight-like object
+                    class MockInsight:
+                        def __init__(self, data):
+                            self.asset = data.get('keywords', ['CRYPTO'])[0]
+                            self.type = type('obj', (object,), {'value': data.get('main_topic', 'General Update')})
+                            self.confidence = 0.9
+                            self.details = data
+
+                    class MockPlan:
+                        def __init__(self, item, insight):
+                            self.id = item.get('item_id', 'mock_id')
+                            self.format = item_format
+                            self.insight = insight
+
+                    mock_insight = MockInsight(item)
+                    mock_plan = MockPlan(item, mock_insight)
+
+                    # Generate content
+                    content = await self._generate_content(mock_plan)
+
+                    if content:
+                        results["content_created"] += 1
+                        results["generated_content"] = results.get("generated_content", [])
+                        results["generated_content"].append(content)
+
+                        # Track by type
+                        if item_format == ContentFormat.SINGLE_TWEET:
+                            results["tweets"] += 1
+                        elif item_format == ContentFormat.THREAD:
+                            results["threads"] += 1
+                        elif item_format == ContentFormat.TELEGRAM_MESSAGE:
+                            results["telegram_messages"] += 1
+
+                except Exception as e:
+                    error_msg = f"Error creating content for item: {e}"
+                    self.log_error(error_msg)
+                    results["errors"].append(error_msg)
+
+            return results
 
         try:
             # Query and process plans within same session
@@ -97,7 +170,7 @@ class ContentCreationAgent(BaseAgent):
                                 results["threads"] += 1
                             elif plan.format in [
                                 ContentFormat.TELEGRAM_MESSAGE,
-                                ContentFormat.IMAGE_POST
+                                ContentFormat.IMAGE_POST,
                             ]:
                                 results["telegram_messages"] += 1
 
@@ -113,9 +186,7 @@ class ContentCreationAgent(BaseAgent):
 
                 db.commit()
 
-            self.log_info(
-                f"Content creation complete: {results['content_created']} pieces created"
-            )
+            self.log_info(f"Content creation complete: {results['content_created']} pieces created")
 
         except Exception as e:
             self.log_error(f"Content creation error: {e}")
@@ -123,7 +194,7 @@ class ContentCreationAgent(BaseAgent):
 
         return results
 
-    async def _get_pending_plans(self) -> List[ContentPlan]:
+    async def _get_pending_plans(self) -> list[ContentPlan]:
         """
         Get content plans that are pending content creation.
 
@@ -133,6 +204,9 @@ class ContentCreationAgent(BaseAgent):
         from sqlalchemy.orm import joinedload
 
         with get_db() as db:
+            return (
+                db.query(ContentPlan).filter(ContentPlan.status == "pending").limit(10).all()
+            )  # Process 10 at a time
             plans = db.query(ContentPlan).options(
                 joinedload(ContentPlan.insight)
             ).filter(
@@ -145,7 +219,7 @@ class ContentCreationAgent(BaseAgent):
 
             return plans
 
-    async def _generate_content(self, plan: ContentPlan) -> Dict:
+    async def _generate_content(self, plan: ContentPlan) -> dict:
         """
         Generate content for a content plan.
 
@@ -160,20 +234,18 @@ class ContentCreationAgent(BaseAgent):
         # Choose generation method based on format
         if plan.format == ContentFormat.SINGLE_TWEET:
             return await self._generate_tweet(insight, plan)
-        elif plan.format == ContentFormat.THREAD:
+        if plan.format == ContentFormat.THREAD:
             return await self._generate_thread(insight, plan)
-        elif plan.format == ContentFormat.TELEGRAM_MESSAGE:
+        if plan.format == ContentFormat.TELEGRAM_MESSAGE:
             return await self._generate_telegram_message(insight, plan)
-        elif plan.format == ContentFormat.BLOG_POST:
+        if plan.format == ContentFormat.BLOG_POST:
             return await self._generate_blog_post(insight, plan)
-        else:
-            return await self._generate_tweet(insight, plan)
+        return await self._generate_tweet(insight, plan)
 
-    async def _generate_tweet(self, insight, plan: ContentPlan) -> Dict:
+    async def _generate_tweet(self, insight, plan: ContentPlan) -> dict:
         """Generate a single tweet."""
         personality = self.personality_prompts.get(
-            self.personality,
-            self.personality_prompts["hyper-analytical"]
+            self.personality, self.personality_prompts["hyper-analytical"]
         )
 
         prompt = f"""{personality}
@@ -195,32 +267,32 @@ Requirements:
 Tweet:"""
 
         try:
+            message = self.llm_client.messages.create(
+                model="claude-3-5-sonnet-20241022",
+                max_tokens=150,
+                messages=[{"role": "user", "content": prompt}],
             # Use Gemini by default (Anthropic has no credits)
-            tweet_text = self.llm_client.generate(
+            tweet_text = await self.llm_client.generate(
                 prompt=prompt,
                 model="gemini",
                 max_tokens=150
-            ).strip()
+            )
+            tweet_text = tweet_text.strip()
 
             # Ensure it fits in 280 characters
             if len(tweet_text) > 280:
                 tweet_text = tweet_text[:277] + "..."
 
-            return {
-                "text": tweet_text,
-                "format": "tweet",
-                "content_plan_id": plan.id
-            }
+            return {"text": tweet_text, "format": "tweet", "content_plan_id": plan.id}
 
         except Exception as e:
             self.log_error(f"Error generating tweet: {e}")
             return None
 
-    async def _generate_thread(self, insight, plan: ContentPlan) -> Dict:
+    async def _generate_thread(self, insight, plan: ContentPlan) -> dict:
         """Generate a Twitter thread."""
         personality = self.personality_prompts.get(
-            self.personality,
-            self.personality_prompts["hyper-analytical"]
+            self.personality, self.personality_prompts["hyper-analytical"]
         )
 
         # Determine thread length based on confidence and detail
@@ -251,49 +323,48 @@ Return as a JSON array of strings, e.g.:
 Thread:"""
 
         try:
+            message = self.llm_client.messages.create(
+                model="claude-3-5-sonnet-20241022",
+                max_tokens=800,
+                messages=[{"role": "user", "content": prompt}],
             # Use Gemini by default (Anthropic has no credits)
-            response_text = self.llm_client.generate(
+            response_text = await self.llm_client.generate(
                 prompt=prompt,
                 model="gemini",
                 max_tokens=800
-            ).strip()
+            )
+            response_text = response_text.strip()
 
             # Try to parse as JSON
             try:
                 # Extract JSON array from the response
-                start_idx = response_text.find('[')
-                end_idx = response_text.rfind(']') + 1
+                start_idx = response_text.find("[")
+                end_idx = response_text.rfind("]") + 1
                 json_str = response_text[start_idx:end_idx]
                 thread_tweets = json.loads(json_str)
-            except:
+            except (json.JSONDecodeError, ValueError, IndexError):
                 # Fallback: split by newlines
                 thread_tweets = [
                     t.strip()
-                    for t in response_text.split('\n')
+                    for t in response_text.split("\n")
                     if t.strip() and len(t.strip()) > 10
                 ][:thread_length]
 
             # Ensure each tweet fits in 280 characters
             thread_tweets = [
-                tweet[:277] + "..." if len(tweet) > 280 else tweet
-                for tweet in thread_tweets
+                tweet[:277] + "..." if len(tweet) > 280 else tweet for tweet in thread_tweets
             ]
 
-            return {
-                "tweets": thread_tweets,
-                "format": "thread",
-                "content_plan_id": plan.id
-            }
+            return {"tweets": thread_tweets, "format": "thread", "content_plan_id": plan.id}
 
         except Exception as e:
             self.log_error(f"Error generating thread: {e}")
             return None
 
-    async def _generate_telegram_message(self, insight, plan: ContentPlan) -> Dict:
+    async def _generate_telegram_message(self, insight, plan: ContentPlan) -> dict:
         """Generate a Telegram message."""
         personality = self.personality_prompts.get(
-            self.personality,
-            self.personality_prompts["hyper-analytical"]
+            self.personality, self.personality_prompts["hyper-analytical"]
         )
 
         # Telegram allows markdown formatting
@@ -316,28 +387,28 @@ Requirements:
 Message:"""
 
         try:
+            message = self.llm_client.messages.create(
+                model="claude-3-5-sonnet-20241022",
+                max_tokens=500,
+                messages=[{"role": "user", "content": prompt}],
             # Use Gemini by default (Anthropic has no credits)
-            telegram_text = self.llm_client.generate(
+            telegram_text = await self.llm_client.generate(
                 prompt=prompt,
                 model="gemini",
                 max_tokens=500
-            ).strip()
+            )
+            telegram_text = telegram_text.strip()
 
-            return {
-                "text": telegram_text,
-                "format": "telegram",
-                "content_plan_id": plan.id
-            }
+            return {"text": telegram_text, "format": "telegram", "content_plan_id": plan.id}
 
         except Exception as e:
             self.log_error(f"Error generating Telegram message: {e}")
             return None
 
-    async def _generate_blog_post(self, insight, plan: ContentPlan) -> Dict:
+    async def _generate_blog_post(self, insight, plan: ContentPlan) -> dict:
         """Generate a blog post."""
         personality = self.personality_prompts.get(
-            self.personality,
-            self.personality_prompts["educational"]
+            self.personality, self.personality_prompts["educational"]
         )
 
         prompt = f"""{personality}
@@ -361,23 +432,23 @@ Requirements:
 Blog Post:"""
 
         try:
+            message = self.llm_client.messages.create(
+                model="claude-3-5-sonnet-20241022",
+                max_tokens=1500,
+                messages=[{"role": "user", "content": prompt}],
             # Use Gemini by default (Anthropic has no credits)
-            blog_text = self.llm_client.generate(
+            blog_text = await self.llm_client.generate(
                 prompt=prompt,
                 model="gemini",
                 max_tokens=1500
-            ).strip()
+            )
+            blog_text = blog_text.strip()
 
             # Extract title (first line starting with #)
-            lines = blog_text.split('\n')
-            title = lines[0].replace('#', '').strip() if lines else "Market Analysis"
+            lines = blog_text.split("\n")
+            title = lines[0].replace("#", "").strip() if lines else "Market Analysis"
 
-            return {
-                "title": title,
-                "text": blog_text,
-                "format": "blog",
-                "content_plan_id": plan.id
-            }
+            return {"title": title, "text": blog_text, "format": "blog", "content_plan_id": plan.id}
 
         except Exception as e:
             self.log_error(f"Error generating blog post: {e}")

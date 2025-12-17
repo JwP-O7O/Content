@@ -1,8 +1,9 @@
 """Exchange API integration for market data."""
 
+from datetime import datetime, timezone
+from typing import Optional
+
 import aiohttp
-from typing import Dict, List, Optional
-from datetime import datetime
 from loguru import logger
 
 
@@ -25,7 +26,7 @@ class ExchangeAPI:
         self.api_secret = api_secret
         self.base_url = "https://api.binance.com/api/v3"
 
-    async def get_ticker_24h(self, symbol: str = "BTCUSDT") -> Dict:
+    async def get_ticker_24h(self, symbol: str = "BTCUSDT") -> dict:
         """
         Get 24-hour price change statistics.
 
@@ -50,17 +51,16 @@ class ExchangeAPI:
                             "price_change_24h": float(data["priceChangePercent"]),
                             "high_24h": float(data["highPrice"]),
                             "low_24h": float(data["lowPrice"]),
-                            "timestamp": datetime.utcnow(),
-                            "raw_data": data
+                            "timestamp": datetime.now(tz=timezone.utc),
+                            "raw_data": data,
                         }
-                    else:
-                        logger.error(f"Failed to fetch ticker for {symbol}: {response.status}")
-                        return None
+                    logger.error(f"Failed to fetch ticker for {symbol}: {response.status}")
+                    return None
         except Exception as e:
             logger.error(f"Error fetching ticker data: {e}")
             return None
 
-    async def get_top_gainers_losers(self, limit: int = 10) -> Dict[str, List[Dict]]:
+    async def get_top_gainers_losers(self, limit: int = 10) -> dict[str, list[dict]]:
         """
         Get top gainers and losers in the last 24 hours.
 
@@ -80,16 +80,15 @@ class ExchangeAPI:
 
                         # Filter for USDT pairs and valid data
                         usdt_pairs = [
-                            t for t in all_tickers
+                            t
+                            for t in all_tickers
                             if t["symbol"].endswith("USDT")
                             and float(t["volume"]) > 1000000  # Min volume filter
                         ]
 
                         # Sort by price change percentage
                         sorted_tickers = sorted(
-                            usdt_pairs,
-                            key=lambda x: float(x["priceChangePercent"]),
-                            reverse=True
+                            usdt_pairs, key=lambda x: float(x["priceChangePercent"]), reverse=True
                         )
 
                         gainers = [
@@ -97,7 +96,7 @@ class ExchangeAPI:
                                 "symbol": t["symbol"],
                                 "price": float(t["lastPrice"]),
                                 "change_percent": float(t["priceChangePercent"]),
-                                "volume": float(t["volume"])
+                                "volume": float(t["volume"]),
                             }
                             for t in sorted_tickers[:limit]
                         ]
@@ -107,7 +106,7 @@ class ExchangeAPI:
                                 "symbol": t["symbol"],
                                 "price": float(t["lastPrice"]),
                                 "change_percent": float(t["priceChangePercent"]),
-                                "volume": float(t["volume"])
+                                "volume": float(t["volume"]),
                             }
                             for t in sorted_tickers[-limit:]
                         ]
@@ -115,21 +114,17 @@ class ExchangeAPI:
                         return {
                             "gainers": gainers,
                             "losers": losers,
-                            "timestamp": datetime.utcnow()
+                            "timestamp": datetime.now(tz=timezone.utc),
                         }
-                    else:
-                        logger.error(f"Failed to fetch all tickers: {response.status}")
-                        return {"gainers": [], "losers": []}
+                    logger.error(f"Failed to fetch all tickers: {response.status}")
+                    return {"gainers": [], "losers": []}
         except Exception as e:
             logger.error(f"Error fetching gainers/losers: {e}")
             return {"gainers": [], "losers": []}
 
     async def get_klines(
-        self,
-        symbol: str = "BTCUSDT",
-        interval: str = "1h",
-        limit: int = 100
-    ) -> List[Dict]:
+        self, symbol: str = "BTCUSDT", interval: str = "1h", limit: int = 100
+    ) -> list[dict]:
         """
         Get candlestick/kline data for technical analysis.
 
@@ -144,29 +139,24 @@ class ExchangeAPI:
         try:
             async with aiohttp.ClientSession() as session:
                 url = f"{self.base_url}/klines"
-                params = {
-                    "symbol": symbol,
-                    "interval": interval,
-                    "limit": limit
-                }
+                params = {"symbol": symbol, "interval": interval, "limit": limit}
 
                 async with session.get(url, params=params) as response:
                     if response.status == 200:
                         klines = await response.json()
                         return [
                             {
-                                "timestamp": datetime.fromtimestamp(k[0] / 1000),
+                                "timestamp": datetime.fromtimestamp(k[0] / 1000, tz=timezone.utc),
                                 "open": float(k[1]),
                                 "high": float(k[2]),
                                 "low": float(k[3]),
                                 "close": float(k[4]),
-                                "volume": float(k[5])
+                                "volume": float(k[5]),
                             }
                             for k in klines
                         ]
-                    else:
-                        logger.error(f"Failed to fetch klines: {response.status}")
-                        return []
+                    logger.error(f"Failed to fetch klines: {response.status}")
+                    return []
         except Exception as e:
             logger.error(f"Error fetching klines: {e}")
             return []

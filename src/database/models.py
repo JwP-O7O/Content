@@ -1,14 +1,24 @@
 """Database models for the Content Creator system."""
 
+import enum
 from datetime import datetime
+
 from sqlalchemy import (
     Column, Integer, String, Float, DateTime, Boolean,
     Text, JSON, ForeignKey, Enum, Index
+    JSON,
+    Boolean,
+    Column,
+    DateTime,
+    Enum,
+    Float,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
 )
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
-import enum
-
 
 Base = declarative_base()
 
@@ -64,6 +74,7 @@ class SentimentData(Base):
 
 class InsightType(enum.Enum):
     """Types of insights the AnalysisAgent can generate."""
+
     BREAKOUT = "breakout"
     BREAKDOWN = "breakdown"
     SENTIMENT_SHIFT = "sentiment_shift"
@@ -95,6 +106,7 @@ class Insight(Base):
 
 class ContentFormat(enum.Enum):
     """Content format types."""
+
     SINGLE_TWEET = "single_tweet"
     THREAD = "thread"
     BLOG_POST = "blog_post"
@@ -119,7 +131,9 @@ class ContentPlan(Base):
 
     # Relationships
     insight = relationship("Insight", back_populates="content_plans")
-    published_content = relationship("PublishedContent", back_populates="content_plan", uselist=False)
+    published_content = relationship(
+        "PublishedContent", back_populates="content_plan", uselist=False
+    )
 
 
 class PublishedContent(Base):
@@ -180,6 +194,7 @@ class AgentLog(Base):
 
 class UserTier(enum.Enum):
     """User membership tiers."""
+
     FREE = "free"
     BASIC = "basic"
     PREMIUM = "premium"
@@ -393,6 +408,7 @@ class ModerationAction(Base):
 
 class TestStatus(enum.Enum):
     """A/B test status."""
+
     ACTIVE = "active"
     COMPLETED = "completed"
     PAUSED = "paused"
@@ -409,7 +425,9 @@ class ABTest(Base):
     # Test metadata
     test_name = Column(String(200), nullable=False)
     hypothesis = Column(Text)
-    variable_being_tested = Column(String(100), nullable=False)  # headline, format, posting_time, cta, etc.
+    variable_being_tested = Column(
+        String(100), nullable=False
+    )  # headline, format, posting_time, cta, etc.
 
     # Test configuration
     insight_id = Column(Integer, ForeignKey("insights.id"))  # Optional - link to specific insight
@@ -430,7 +448,9 @@ class ABTest(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     # Relationships
-    variants = relationship("ABTestVariant", back_populates="test", foreign_keys="ABTestVariant.test_id")
+    variants = relationship(
+        "ABTestVariant", back_populates="test", foreign_keys="ABTestVariant.test_id"
+    )
 
 
 class ABTestVariant(Base):
@@ -504,6 +524,29 @@ class PerformanceSnapshot(Base):
 
     # AI performance
     avg_insight_confidence = Column(Float, default=0.0)
-    insight_accuracy_rate = Column(Float, default=0.0)  # How often high-confidence insights performed well
+    insight_accuracy_rate = Column(
+        Float, default=0.0
+    )  # How often high-confidence insights performed well
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class APIKey(Base):
+    """API keys for external access to data."""
+
+    __tablename__ = "api_keys"
+
+    id = Column(Integer, primary_key=True)
+    key_hash = Column(String(128), unique=True, nullable=False, index=True)
+    owner_name = Column(String(100), nullable=False)
+    owner_email = Column(String(255), index=True)
+
+    # Limits
+    rate_limit_per_minute = Column(Integer, default=60)
+    is_active = Column(Boolean, default=True)
+
+    # Usage tracking
+    request_count = Column(Integer, default=0)
+    last_used_at = Column(DateTime)
 
     created_at = Column(DateTime, default=datetime.utcnow)
