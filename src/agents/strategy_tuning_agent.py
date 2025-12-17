@@ -1,6 +1,8 @@
 """StrategyTuningAgent - Automatically optimizes system strategies based on performance."""
 
 import json
+from sqlalchemy import func
+from sqlalchemy.orm import joinedload
 from datetime import datetime, timedelta, timezone
 
 from anthropic import Anthropic
@@ -9,6 +11,8 @@ from config.config import settings
 from src.agents.base_agent import BaseAgent
 from src.database.connection import get_db
 from src.database.models import (
+    PublishedContent, Insight, ConversionAttempt,
+    ExclusiveContent, ContentFormat, InsightType, ContentPlan
     ConversionAttempt,
     PublishedContent,
 )
@@ -108,6 +112,10 @@ class StrategyTuningAgent(BaseAgent):
         cutoff = datetime.now(tz=timezone.utc) - timedelta(days=30)
 
         with get_db() as db:
+            # Check if we have enough data
+            content_count = db.query(func.count(PublishedContent.id)).filter(
+                PublishedContent.published_at >= cutoff
+            ).scalar()
             content_items = (
                 db.query(PublishedContent)
                 .join(PublishedContent.content_plan)
@@ -115,9 +123,28 @@ class StrategyTuningAgent(BaseAgent):
                 .all()
             )
 
-            if len(content_items) < self.min_data_points:
+            if content_count < self.min_data_points:
                 return {
                     "insufficient_data": True,
+                    "message": f"Need {self.min_data_points} data points, have {content_count}"
+                }
+
+            # Analyze by format using SQL aggregation (much faster than Python loops)
+            format_stats = db.query(
+                ContentPlan.format,
+                func.count(PublishedContent.id).label('count'),
+                func.avg(
+                    PublishedContent.likes + 
+                    PublishedContent.comments * 2 + 
+                    PublishedContent.shares * 3
+                ).label('avg_engagement')
+            ).join(
+                PublishedContent.content_plan
+            ).filter(
+                PublishedContent.published_at >= cutoff
+            ).group_by(
+                ContentPlan.format
+            ).all()
                     "message": f"Need {self.min_data_points} data points, have {len(content_items)}",
                 }
 
@@ -171,21 +198,45 @@ class StrategyTuningAgent(BaseAgent):
 
                 insight_performance[insight_type]["count"] += 1
 
-                engagement_rate = content.engagement_rate or 0
-                insight_performance[insight_type]["total_engagement"] += engagement_rate
+            format_performance = {
+                stat.format.value: {
+                    "count": stat.count,
+                    "avg_engagement_rate": float(stat.avg_engagement or 0),
+                    "total_engagement": 0,  # Calculated if needed
+                    "best_performing_assets": []
+                }
+                for stat in format_stats
+            }
 
-            # Calculate averages
-            for itype in insight_performance:
-                count = insight_performance[itype]["count"]
+            # Analyze by insight type using SQL aggregation
+            insight_stats = db.query(
+                Insight.type,
+                func.count(PublishedContent.id).label('count'),
+                func.avg(PublishedContent.engagement_rate).label('avg_engagement')
+            ).join(
+                ContentPlan, ContentPlan.insight_id == Insight.id
+            ).join(
+                PublishedContent, PublishedContent.content_plan_id == ContentPlan.id
+            ).filter(
+                PublishedContent.published_at >= cutoff
+            ).group_by(
+                Insight.type
+            ).all()
 
-                if count > 0:
-                    insight_performance[itype]["avg_engagement_rate"] = (
-                        insight_performance[itype]["total_engagement"] / count
-                    )
+            insight_performance = {
+                stat.type.value: {
+                    "count": stat.count,
+                    "avg_engagement_rate": float(stat.avg_engagement or 0),
+                    "total_engagement": 0,  # Kept for compatibility
+                    "hit_rate": 0  # Placeholder for signal accuracy
+                }
+                for stat in insight_stats
+            }
 
             return {
                 "format_performance": format_performance,
                 "insight_performance": insight_performance,
+                "total_content_analyzed": content_count
                 "total_content_analyzed": len(content_items),
             }
 

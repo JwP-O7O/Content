@@ -5,11 +5,16 @@ from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from anthropic import Anthropic
+from sqlalchemy.orm import joinedload
+from sqlalchemy import func
 
 from config.config import settings
 from src.agents.base_agent import BaseAgent
 from src.database.connection import get_db
 from src.database.models import (
+    PerformanceSnapshot, PublishedContent, Insight,
+    CommunityUser, Subscription, UserTier, ConversionAttempt,
+    InsightType, ContentFormat, ContentPlan
     CommunityUser,
     ConversionAttempt,
     Insight,
@@ -123,6 +128,83 @@ class PerformanceAnalyticsAgent(BaseAgent):
                 self.log_info(f"{period_type.capitalize()} snapshot already exists")
                 return existing
 
+            # Gather content metrics with eager loading to avoid N+1 queries
+            content_items = db.query(PublishedContent).options(
+                joinedload(PublishedContent.content_plan).joinedload(ContentPlan.insight)
+            ).filter(
+                PublishedContent.published_at >= cutoff
+            ).all()
+
+            content_count = len(content_items)
+            
+            # Use SQL aggregations instead of Python loops for better performance
+            metrics = db.query(
+                func.sum(PublishedContent.views).label('total_views'),
+                func.sum(
+                    func.coalesce(PublishedContent.likes, 0) + 
+                    func.coalesce(PublishedContent.comments, 0) + 
+                    func.coalesce(PublishedContent.shares, 0)
+                ).label('total_clicks'),
+                func.avg(PublishedContent.engagement_rate).label('avg_engagement')
+            ).filter(
+                PublishedContent.published_at >= cutoff
+            ).first()
+            
+            total_impressions = int(metrics.total_views or 0)
+            total_clicks = int(metrics.total_clicks or 0)
+            avg_engagement = float(metrics.avg_engagement or 0)
+
+            # Find best performing format using SQL aggregation
+            format_stats = db.query(
+                ContentPlan.format,
+                func.avg(PublishedContent.engagement_rate).label('avg_engagement')
+            ).join(
+                PublishedContent.content_plan
+            ).filter(
+                PublishedContent.published_at >= cutoff
+            ).group_by(
+                ContentPlan.format
+            ).order_by(
+                func.avg(PublishedContent.engagement_rate).desc()
+            ).first()
+            
+            top_format = format_stats.format.value if format_stats else None
+
+            # Find best performing asset using SQL aggregation
+            asset_stats = db.query(
+                Insight.asset,
+                func.avg(PublishedContent.engagement_rate).label('avg_engagement')
+            ).join(
+                ContentPlan, ContentPlan.insight_id == Insight.id
+            ).join(
+                PublishedContent, PublishedContent.content_plan_id == ContentPlan.id
+            ).filter(
+                PublishedContent.published_at >= cutoff
+            ).group_by(
+                Insight.asset
+            ).order_by(
+                func.avg(PublishedContent.engagement_rate).desc()
+            ).first()
+            
+            top_asset = asset_stats.asset if asset_stats else None
+
+            # Find best performing insight type using SQL aggregation
+            insight_stats = db.query(
+                Insight.type,
+                func.avg(PublishedContent.engagement_rate).label('avg_engagement')
+            ).join(
+                ContentPlan, ContentPlan.insight_id == Insight.id
+            ).join(
+                PublishedContent, PublishedContent.content_plan_id == ContentPlan.id
+            ).filter(
+                PublishedContent.published_at >= cutoff
+            ).group_by(
+                Insight.type
+            ).order_by(
+                func.avg(PublishedContent.engagement_rate).desc()
+            ).first()
+            
+            top_insight_type = insight_stats.type.value if insight_stats else None
             # Gather content metrics
             content_items = (
                 db.query(PublishedContent).filter(PublishedContent.published_at >= cutoff).all()

@@ -134,7 +134,11 @@ class EngagementAgent(BaseAgent):
             self.twitter_api = None
 
         # Initialize LLM for generating replies
-        self.llm_client = Anthropic(api_key=settings.anthropic_api_key)
+        try:
+            self.llm_client = Anthropic(api_key=settings.anthropic_api_key)
+        except Exception as e:
+            self.log_warning(f"Anthropic client not configured: {e}")
+            self.llm_client = None
 
         # Engagement parameters
         self.auto_like_threshold = 0.3  # Like posts with sentiment > 0.3
@@ -212,6 +216,16 @@ class EngagementAgent(BaseAgent):
         cutoff_time = datetime.now(tz=timezone.utc) - timedelta(hours=24)
 
         with get_db() as db:
+            # Add limit to prevent loading too much data
+            # Sort by published_at descending to get most recent first
+            content = db.query(PublishedContent).filter(
+                PublishedContent.platform == "twitter",
+                PublishedContent.published_at >= cutoff_time
+            ).order_by(
+                PublishedContent.published_at.desc()
+            ).limit(100).all()  # Limit to 100 most recent posts
+
+            return content
             return (
                 db.query(PublishedContent)
                 .filter(

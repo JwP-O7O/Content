@@ -1,5 +1,8 @@
 """AnalyticsAgent - Tracks and analyzes system performance."""
 
+from typing import Dict, List
+from datetime import datetime, timedelta
+from sqlalchemy import func, case
 from datetime import datetime, timedelta, timezone
 
 from src.agents.base_agent import BaseAgent
@@ -80,17 +83,47 @@ class AnalyticsAgent(BaseAgent):
         """
         self.log_info("Analyzing agent performance...")
 
+        cutoff = datetime.utcnow() - timedelta(days=7)
+
+        with get_db() as db:
+            # Use SQL aggregation instead of loading all logs into memory
+            # This is much more efficient for large datasets
+            agent_stats_query = db.query(
+                AgentLog.agent_name,
+                func.count(AgentLog.id).label('total_runs'),
+                func.sum(case((AgentLog.status == 'success', 1), else_=0)).label('successful_runs'),
+                func.sum(case((AgentLog.status == 'error', 1), else_=0)).label('failed_runs'),
+                func.avg(AgentLog.execution_time).label('avg_execution_time'),
+                func.sum(AgentLog.execution_time).label('total_execution_time')
+            ).filter(
+                AgentLog.timestamp >= cutoff
+            ).group_by(
+                AgentLog.agent_name
+            ).all()
         with get_db() as db:
             # Get agent logs from last 7 days
             cutoff = datetime.now(tz=timezone.utc) - timedelta(days=7)
 
             logs = db.query(AgentLog).filter(AgentLog.timestamp >= cutoff).all()
 
-            if not logs:
+            if not agent_stats_query:
                 return {"message": "No agent activity logged"}
 
-            # Aggregate by agent
+            # Build stats dictionary from aggregated results
             agent_stats = {}
+            
+            for stat in agent_stats_query:
+                agent_name = stat.agent_name
+                total_runs = stat.total_runs
+                
+                agent_stats[agent_name] = {
+                    "total_runs": total_runs,
+                    "successful_runs": stat.successful_runs,
+                    "failed_runs": stat.failed_runs,
+                    "total_execution_time": float(stat.total_execution_time or 0),
+                    "avg_execution_time": float(stat.avg_execution_time or 0),
+                    "success_rate": stat.successful_runs / total_runs if total_runs > 0 else 0
+                }
 
             for log in logs:
                 agent_name = log.agent_name
