@@ -1,9 +1,10 @@
 """Telegram API integration."""
 
+from typing import Optional
+
+from loguru import logger
 from telegram import Bot
 from telegram.error import TelegramError
-from typing import Optional, Dict
-from loguru import logger
 
 
 class TelegramAPI:
@@ -24,11 +25,8 @@ class TelegramAPI:
         logger.info("Telegram API initialized")
 
     async def send_message(
-        self,
-        text: str,
-        parse_mode: str = "Markdown",
-        disable_preview: bool = False
-    ) -> Optional[Dict]:
+        self, text: str, parse_mode: str = "Markdown", disable_preview: bool = False
+    ) -> Optional[dict]:
         """
         Send a message to the configured Telegram channel.
 
@@ -45,7 +43,7 @@ class TelegramAPI:
                 chat_id=self.channel_id,
                 text=text,
                 parse_mode=parse_mode,
-                disable_web_page_preview=disable_preview
+                disable_web_page_preview=disable_preview,
             )
 
             logger.info(f"Telegram message sent: {message.message_id}")
@@ -54,7 +52,7 @@ class TelegramAPI:
                 "message_id": message.message_id,
                 "chat_id": message.chat_id,
                 "text": text,
-                "date": message.date
+                "date": message.date,
             }
 
         except TelegramError as e:
@@ -62,11 +60,8 @@ class TelegramAPI:
             return None
 
     async def send_photo(
-        self,
-        photo_url: str,
-        caption: str = "",
-        parse_mode: str = "Markdown"
-    ) -> Optional[Dict]:
+        self, photo_url: str, caption: str = "", parse_mode: str = "Markdown"
+    ) -> Optional[dict]:
         """
         Send a photo to the configured Telegram channel.
 
@@ -80,10 +75,7 @@ class TelegramAPI:
         """
         try:
             message = await self.bot.send_photo(
-                chat_id=self.channel_id,
-                photo=photo_url,
-                caption=caption,
-                parse_mode=parse_mode
+                chat_id=self.channel_id, photo=photo_url, caption=caption, parse_mode=parse_mode
             )
 
             logger.info(f"Telegram photo sent: {message.message_id}")
@@ -92,7 +84,7 @@ class TelegramAPI:
                 "message_id": message.message_id,
                 "chat_id": message.chat_id,
                 "caption": caption,
-                "date": message.date
+                "date": message.date,
             }
 
         except TelegramError as e:
@@ -100,11 +92,8 @@ class TelegramAPI:
             return None
 
     async def edit_message(
-        self,
-        message_id: int,
-        new_text: str,
-        parse_mode: str = "Markdown"
-    ) -> Optional[Dict]:
+        self, message_id: int, new_text: str, parse_mode: str = "Markdown"
+    ) -> Optional[dict]:
         """
         Edit an existing message.
 
@@ -118,18 +107,12 @@ class TelegramAPI:
         """
         try:
             message = await self.bot.edit_message_text(
-                chat_id=self.channel_id,
-                message_id=message_id,
-                text=new_text,
-                parse_mode=parse_mode
+                chat_id=self.channel_id, message_id=message_id, text=new_text, parse_mode=parse_mode
             )
 
             logger.info(f"Telegram message edited: {message_id}")
 
-            return {
-                "message_id": message.message_id,
-                "text": new_text
-            }
+            return {"message_id": message.message_id, "text": new_text}
 
         except TelegramError as e:
             logger.error(f"Failed to edit Telegram message: {e}")

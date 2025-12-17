@@ -1,9 +1,9 @@
 """Base agent class that all agents inherit from."""
 
-from abc import ABC, abstractmethod
-from datetime import datetime
-from typing import Any, Dict, Optional
 import time
+from abc import ABC, abstractmethod
+from typing import Any, Optional
+
 from loguru import logger
 
 from src.database.connection import get_db
@@ -34,7 +34,6 @@ class BaseAgent(ABC):
 
         This method should be implemented by all subclasses.
         """
-        pass
 
     async def run(self, *args, **kwargs) -> Any:
         """
@@ -43,7 +42,7 @@ class BaseAgent(ABC):
         This method should be called instead of execute() directly.
         """
         start_time = time.time()
-        action = kwargs.get('action', 'execute')
+        action = kwargs.get("action", "execute")
 
         logger.info(f"{self.name} starting: {action}")
 
@@ -56,13 +55,10 @@ class BaseAgent(ABC):
                 action=action,
                 status="success",
                 details={"result_summary": str(result)[:500]},
-                execution_time=execution_time
+                execution_time=execution_time,
             )
 
-            logger.info(
-                f"{self.name} completed: {action} "
-                f"(took {execution_time:.2f}s)"
-            )
+            logger.info(f"{self.name} completed: {action} " f"(took {execution_time:.2f}s)")
 
             return result
 
@@ -75,12 +71,11 @@ class BaseAgent(ABC):
                 action=action,
                 status="error",
                 error_message=error_message,
-                execution_time=execution_time
+                execution_time=execution_time,
             )
 
             logger.error(
-                f"{self.name} failed: {action} - {error_message} "
-                f"(took {execution_time:.2f}s)"
+                f"{self.name} failed: {action} - {error_message} " f"(took {execution_time:.2f}s)"
             )
 
             raise
@@ -89,9 +84,9 @@ class BaseAgent(ABC):
         self,
         action: str,
         status: str,
-        details: Optional[Dict] = None,
+        details: Optional[dict] = None,
         error_message: Optional[str] = None,
-        execution_time: Optional[float] = None
+        execution_time: Optional[float] = None,
     ):
         """
         Log agent activity to the database.
@@ -111,7 +106,7 @@ class BaseAgent(ABC):
                     status=status,
                     details=details or {},
                     error_message=error_message,
-                    execution_time=execution_time
+                    execution_time=execution_time,
                 )
                 db.add(log_entry)
                 db.commit()

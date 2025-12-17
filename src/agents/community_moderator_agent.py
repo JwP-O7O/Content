@@ -1,16 +1,17 @@
 """CommunityModeratorAgent - Moderates private community channels."""
 
 import re
-from typing import Dict, List, Optional
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
+from typing import Optional
+
 from anthropic import Anthropic
 
+from config.config import settings
 from src.agents.base_agent import BaseAgent
-from src.database.connection import get_db
-from src.database.models import CommunityUser, ModerationAction
 from src.api_integrations.discord_api import DiscordAPI
 from src.api_integrations.telegram_api import TelegramAPI
-from config.config import settings
+from src.database.connection import get_db
+from src.database.models import ModerationAction
 
 
 class CommunityModeratorAgent(BaseAgent):
@@ -33,8 +34,7 @@ class CommunityModeratorAgent(BaseAgent):
         # Initialize Discord
         try:
             self.discord_api = DiscordAPI(
-                bot_token=settings.discord_bot_token,
-                guild_id=settings.discord_guild_id
+                bot_token=settings.discord_bot_token, guild_id=settings.discord_guild_id
             )
         except Exception as e:
             self.log_warning(f"Discord API not configured: {e}")
@@ -43,8 +43,7 @@ class CommunityModeratorAgent(BaseAgent):
         # Initialize Telegram
         try:
             self.telegram_api = TelegramAPI(
-                bot_token=settings.telegram_bot_token,
-                channel_id=settings.telegram_channel_id
+                bot_token=settings.telegram_bot_token, channel_id=settings.telegram_channel_id
             )
         except Exception as e:
             self.log_warning(f"Telegram API not configured: {e}")
@@ -55,28 +54,41 @@ class CommunityModeratorAgent(BaseAgent):
 
         # Moderation rules
         self.spam_patterns = [
-            r'(?i)(buy|sell|click|check\s+out).{0,50}(link|here|now)',
-            r'(?i)t\.me/[\w]+',  # Telegram links
-            r'(?i)discord\.gg/[\w]+',  # Discord invites
-            r'(?i)(earn|make).{0,20}\$\d+',  # Money making schemes
-            r'(?i)(dm|message)\s+me',  # Soliciting DMs
+            r"(?i)(buy|sell|click|check\s+out).{0,50}(link|here|now)",
+            r"(?i)t\.me/[\w]+",  # Telegram links
+            r"(?i)discord\.gg/[\w]+",  # Discord invites
+            r"(?i)(earn|make).{0,20}\$\d+",  # Money making schemes
+            r"(?i)(dm|message)\s+me",  # Soliciting DMs
         ]
 
         self.scam_keywords = [
-            "investment opportunity", "guaranteed profit", "double your",
-            "airdrop", "free crypto", "send me", "100x", "moon soon",
-            "pump", "rug pull", "private key", "seed phrase"
+            "investment opportunity",
+            "guaranteed profit",
+            "double your",
+            "airdrop",
+            "free crypto",
+            "send me",
+            "100x",
+            "moon soon",
+            "pump",
+            "rug pull",
+            "private key",
+            "seed phrase",
         ]
 
         self.offensive_keywords = [
-            "scam", "fraud", "fake", "ponzi", "pyramid"
+            "scam",
+            "fraud",
+            "fake",
+            "ponzi",
+            "pyramid",
             # Add more as needed, would use better list in production
         ]
 
         # Confidence threshold for AI moderation
         self.ai_moderation_threshold = 0.8
 
-    async def execute(self) -> Dict:
+    async def execute(self) -> dict:
         """
         Execute moderation checks.
 
@@ -92,7 +104,7 @@ class CommunityModeratorAgent(BaseAgent):
             "users_warned": 0,
             "users_muted": 0,
             "users_banned": 0,
-            "errors": []
+            "errors": [],
         }
 
         try:
@@ -115,35 +127,26 @@ class CommunityModeratorAgent(BaseAgent):
 
         return results
 
-    async def _moderate_discord_channels(self) -> Dict:
+    async def _moderate_discord_channels(self) -> dict:
         """
         Moderate Discord channels.
 
         Returns:
             Dictionary with moderation results
         """
-        results = {
-            "messages_checked": 0,
-            "violations": 0,
-            "deleted": 0,
-            "warned": 0
-        }
+        results = {"messages_checked": 0, "violations": 0, "deleted": 0, "warned": 0}
 
         if not self.discord_api:
             return results
 
         # Get channels to moderate (would be configured)
-        channels_to_moderate = [
-            "general_chat_channel_id",
-            "trading_signals_channel_id"
-        ]
+        channels_to_moderate = ["general_chat_channel_id", "trading_signals_channel_id"]
 
         for channel_id in channels_to_moderate:
             try:
                 # Get recent messages
                 messages = await self.discord_api.get_channel_messages(
-                    channel_id=channel_id,
-                    limit=50
+                    channel_id=channel_id, limit=50
                 )
 
                 results["messages_checked"] += len(messages)
@@ -151,9 +154,7 @@ class CommunityModeratorAgent(BaseAgent):
                 # Check each message
                 for message in messages:
                     violation = await self._check_message_for_violations(
-                        message["content"],
-                        message["author_id"],
-                        message["author_name"]
+                        message["content"], message["author_id"], message["author_name"]
                     )
 
                     if violation:
@@ -168,7 +169,7 @@ class CommunityModeratorAgent(BaseAgent):
                             violation_type=violation["type"],
                             confidence=violation["confidence"],
                             channel_id=channel_id,
-                            message_id=message["id"]
+                            message_id=message["id"],
                         )
 
                         if action_taken == "deleted":
@@ -182,11 +183,8 @@ class CommunityModeratorAgent(BaseAgent):
         return results
 
     async def _check_message_for_violations(
-        self,
-        content: str,
-        user_id: str,
-        user_name: str
-    ) -> Optional[Dict]:
+        self, content: str, user_id: str, user_name: str
+    ) -> Optional[dict]:
         """
         Check a message for violations.
 
@@ -201,11 +199,7 @@ class CommunityModeratorAgent(BaseAgent):
         # Check for spam patterns
         for pattern in self.spam_patterns:
             if re.search(pattern, content):
-                return {
-                    "type": "spam",
-                    "confidence": 0.95,
-                    "reason": "Matches spam pattern"
-                }
+                return {"type": "spam", "confidence": 0.95, "reason": "Matches spam pattern"}
 
         # Check for scam keywords
         content_lower = content.lower()
@@ -215,7 +209,7 @@ class CommunityModeratorAgent(BaseAgent):
                 return {
                     "type": "scam",
                     "confidence": 0.85,
-                    "reason": f"Contains scam keyword: {keyword}"
+                    "reason": f"Contains scam keyword: {keyword}",
                 }
 
         # Check for offensive content
@@ -228,7 +222,7 @@ class CommunityModeratorAgent(BaseAgent):
                     return {
                         "type": "offensive",
                         "confidence": 0.75,
-                        "reason": "Offensive language detected"
+                        "reason": "Offensive language detected",
                     }
 
         # Use AI for advanced moderation
@@ -239,11 +233,7 @@ class CommunityModeratorAgent(BaseAgent):
 
         return None
 
-    async def _ai_moderation_check(
-        self,
-        content: str,
-        violation_type: str
-    ) -> bool:
+    async def _ai_moderation_check(self, content: str, violation_type: str) -> bool:
         """
         Use AI to check if content is actually a violation.
 
@@ -266,7 +256,7 @@ Respond with just "YES" or "NO"."""
             message = self.llm_client.messages.create(
                 model="claude-3-5-sonnet-20241022",
                 max_tokens=10,
-                messages=[{"role": "user", "content": prompt}]
+                messages=[{"role": "user", "content": prompt}],
             )
 
             response = message.content[0].text.strip().upper()
@@ -277,7 +267,7 @@ Respond with just "YES" or "NO"."""
             self.log_error(f"AI moderation check error: {e}")
             return False
 
-    async def _ai_comprehensive_check(self, content: str) -> Optional[Dict]:
+    async def _ai_comprehensive_check(self, content: str) -> Optional[dict]:
         """
         Use AI for comprehensive moderation check.
 
@@ -308,7 +298,7 @@ If no violation:
             message = self.llm_client.messages.create(
                 model="claude-3-5-sonnet-20241022",
                 max_tokens=200,
-                messages=[{"role": "user", "content": prompt}]
+                messages=[{"role": "user", "content": prompt}],
             )
 
             response_text = message.content[0].text.strip()
@@ -319,11 +309,14 @@ If no violation:
             try:
                 result = json.loads(response_text)
 
-                if result.get("violation") and result.get("confidence", 0) >= self.ai_moderation_threshold:
+                if (
+                    result.get("violation")
+                    and result.get("confidence", 0) >= self.ai_moderation_threshold
+                ):
                     return {
                         "type": result["type"],
                         "confidence": result["confidence"],
-                        "reason": result["reason"]
+                        "reason": result["reason"],
                     }
 
             except json.JSONDecodeError:
@@ -343,7 +336,7 @@ If no violation:
         violation_type: str,
         confidence: float,
         channel_id: str,
-        message_id: str
+        message_id: str,
     ) -> str:
         """
         Take appropriate moderation action.
@@ -370,11 +363,15 @@ If no violation:
                 await self.discord_api.delete_message(channel_id, message_id)
                 action = "deleted"
 
-        elif violation_type == "offensive" and confidence >= 0.8:
+        elif (
+            violation_type == "offensive"
+            and confidence >= 0.8
+            and platform == "discord"
+            and self.discord_api
+        ):
             # Offensive content - delete and warn
-            if platform == "discord" and self.discord_api:
-                await self.discord_api.delete_message(channel_id, message_id)
-                action = "warned"
+            await self.discord_api.delete_message(channel_id, message_id)
+            action = "warned"
 
         # Log the moderation action
         await self._log_moderation_action(
@@ -386,7 +383,7 @@ If no violation:
             message_content=message_content,
             channel_id=channel_id,
             automated=True,
-            agent_confidence=confidence
+            agent_confidence=confidence,
         )
 
         self.log_info(
@@ -406,7 +403,7 @@ If no violation:
         message_content: str,
         channel_id: str,
         automated: bool,
-        agent_confidence: float
+        agent_confidence: float,
     ):
         """
         Log moderation action to database.
@@ -432,13 +429,13 @@ If no violation:
                 message_content=message_content,
                 channel_id=channel_id,
                 automated=automated,
-                agent_confidence=agent_confidence
+                agent_confidence=agent_confidence,
             )
 
             db.add(moderation)
             db.commit()
 
-    async def get_moderation_stats(self, days: int = 7) -> Dict:
+    async def get_moderation_stats(self, days: int = 7) -> dict:
         """
         Get moderation statistics.
 
@@ -448,14 +445,11 @@ If no violation:
         Returns:
             Dictionary with moderation stats
         """
-        from datetime import timedelta
 
-        cutoff = datetime.utcnow() - timedelta(days=days)
+        cutoff = datetime.now(tz=timezone.utc) - timedelta(days=days)
 
         with get_db() as db:
-            actions = db.query(ModerationAction).filter(
-                ModerationAction.timestamp >= cutoff
-            ).all()
+            actions = db.query(ModerationAction).filter(ModerationAction.timestamp >= cutoff).all()
 
             stats = {
                 "period_days": days,
@@ -463,7 +457,7 @@ If no violation:
                 "automated_actions": len([a for a in actions if a.automated]),
                 "manual_actions": len([a for a in actions if not a.automated]),
                 "by_type": {},
-                "by_platform": {}
+                "by_platform": {},
             }
 
             # Count by action type

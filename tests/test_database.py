@@ -1,24 +1,35 @@
 """Unit tests for database models and connections."""
 
+from datetime import datetime, timezone
+
 import pytest
-from datetime import datetime
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from src.database.models import (
-    Base, MarketData, Insight, InsightType, ContentPlan,
-    ContentFormat, PublishedContent, ABTest, ABTestVariant,
-    TestStatus, PerformanceSnapshot, CommunityUser, UserTier
+    ABTest,
+    ABTestVariant,
+    Base,
+    CommunityUser,
+    ContentFormat,
+    ContentPlan,
+    Insight,
+    InsightType,
+    MarketData,
+    PerformanceSnapshot,
+    PublishedContent,
+    TestStatus,
+    UserTier,
 )
 
 
-@pytest.fixture
+@pytest.fixture()
 def in_memory_db():
     """Create an in-memory SQLite database for testing."""
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
-    Session = sessionmaker(bind=engine)
-    session = Session()
+    session_factory = sessionmaker(bind=engine)
+    session = session_factory()
     yield session
     session.close()
 
@@ -33,7 +44,7 @@ class TestDatabaseModels:
             price=50000.0,
             volume_24h=1000000000.0,
             price_change_24h=5.5,
-            market_cap=900000000000.0
+            market_cap=900000000000.0,
         )
         in_memory_db.add(market_data)
         in_memory_db.commit()
@@ -49,7 +60,7 @@ class TestDatabaseModels:
             asset="ETH",
             confidence=0.85,
             details={"reason": "Price broke resistance"},
-            is_published=False
+            is_published=False,
         )
         in_memory_db.add(insight)
         in_memory_db.commit()
@@ -65,7 +76,7 @@ class TestDatabaseModels:
             type=InsightType.SENTIMENT_SHIFT,
             asset="BTC",
             confidence=0.9,
-            details={"direction": "bullish"}
+            details={"direction": "bullish"},
         )
         in_memory_db.add(insight)
         in_memory_db.commit()
@@ -76,7 +87,7 @@ class TestDatabaseModels:
             platform="twitter",
             format=ContentFormat.SINGLE_TWEET,
             priority="high",
-            status="pending"
+            status="pending",
         )
         in_memory_db.add(plan)
         in_memory_db.commit()
@@ -93,7 +104,7 @@ class TestDatabaseModels:
             type=InsightType.VOLUME_SPIKE,
             asset="SOL",
             confidence=0.88,
-            details={"volume_increase": "200%"}
+            details={"volume_increase": "200%"},
         )
         in_memory_db.add(insight)
         in_memory_db.commit()
@@ -102,7 +113,7 @@ class TestDatabaseModels:
             insight_id=insight.id,
             platform="twitter",
             format=ContentFormat.THREAD,
-            status="approved"
+            status="approved",
         )
         in_memory_db.add(plan)
         in_memory_db.commit()
@@ -117,7 +128,7 @@ class TestDatabaseModels:
             views=1000,
             likes=50,
             comments=10,
-            shares=5
+            shares=5,
         )
         in_memory_db.add(content)
         in_memory_db.commit()
@@ -138,7 +149,7 @@ class TestPhase4Models:
             variable_being_tested="headline",
             asset="BTC",
             platform="twitter",
-            status=TestStatus.ACTIVE
+            status=TestStatus.ACTIVE,
         )
         in_memory_db.add(test)
         in_memory_db.commit()
@@ -155,7 +166,7 @@ class TestPhase4Models:
             hypothesis="Thread format performs better",
             variable_being_tested="format",
             platform="twitter",
-            status=TestStatus.ACTIVE
+            status=TestStatus.ACTIVE,
         )
         in_memory_db.add(test)
         in_memory_db.commit()
@@ -168,7 +179,7 @@ class TestPhase4Models:
             variant_config={"format": "single_tweet"},
             impressions=1000,
             engagement_count=50,
-            sample_size=10
+            sample_size=10,
         )
         variant_a = ABTestVariant(
             test_id=test.id,
@@ -177,7 +188,7 @@ class TestPhase4Models:
             variant_config={"format": "thread"},
             impressions=1000,
             engagement_count=75,
-            sample_size=10
+            sample_size=10,
         )
 
         in_memory_db.add_all([control, variant_a])
@@ -198,7 +209,7 @@ class TestPhase4Models:
             new_conversions=2,
             total_paying_members=50,
             revenue=500.0,
-            conversion_rate=0.04
+            conversion_rate=0.04,
         )
         in_memory_db.add(snapshot)
         in_memory_db.commit()
@@ -218,7 +229,7 @@ class TestPhase3Models:
             twitter_username="testuser",
             tier=UserTier.FREE,
             engagement_score=75.5,
-            total_interactions=100
+            total_interactions=100,
         )
         in_memory_db.add(user)
         in_memory_db.commit()
@@ -229,17 +240,13 @@ class TestPhase3Models:
 
     def test_user_tier_upgrade(self, in_memory_db):
         """Test upgrading user tier."""
-        user = CommunityUser(
-            twitter_id="123456",
-            tier=UserTier.FREE,
-            engagement_score=80.0
-        )
+        user = CommunityUser(twitter_id="123456", tier=UserTier.FREE, engagement_score=80.0)
         in_memory_db.add(user)
         in_memory_db.commit()
 
         # Upgrade to premium
         user.tier = UserTier.PREMIUM
-        user.converted_at = datetime.utcnow()
+        user.converted_at = datetime.now(tz=timezone.utc)
         in_memory_db.commit()
 
         assert user.tier == UserTier.PREMIUM
@@ -249,16 +256,22 @@ class TestPhase3Models:
 def test_all_models_have_required_fields():
     """Test that all models have basic required fields."""
     models = [
-        MarketData, Insight, ContentPlan, PublishedContent,
-        ABTest, ABTestVariant, PerformanceSnapshot, CommunityUser
+        MarketData,
+        Insight,
+        ContentPlan,
+        PublishedContent,
+        ABTest,
+        ABTestVariant,
+        PerformanceSnapshot,
+        CommunityUser,
     ]
 
     for model in models:
         # Check that model has an id field
-        assert hasattr(model, 'id')
+        assert hasattr(model, "id")
 
         # Check that model has __tablename__
-        assert hasattr(model, '__tablename__')
+        assert hasattr(model, "__tablename__")
 
 
 if __name__ == "__main__":

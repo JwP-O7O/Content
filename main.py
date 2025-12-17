@@ -1,10 +1,13 @@
 import asyncio
 import sys
+
 from loguru import logger
+
 from src.api import app as api_app  # Import the Flask app
 from src.utils.logger import setup_logger
 from src.orchestrator import AgentOrchestrator
 from src.scheduler import ContentCreatorScheduler
+from src.utils.logger import setup_logger
 
 
 def print_banner():
@@ -111,21 +114,21 @@ async def run_interactive_mode():
                 logger.info("Loading KPI dashboard...")
                 kpis = await orchestrator.get_kpi_dashboard()
 
-                print("\n" + "="*60)
+                print("\n" + "=" * 60)
                 print("KPI DASHBOARD")
-                print("="*60)
-                print(f"\nLast 24 Hours:")
+                print("=" * 60)
+                print("\nLast 24 Hours:")
                 print(f"  Insights Generated:  {kpis['insights_generated_24h']}")
                 print(f"  Content Published:   {kpis['content_published_24h']}")
-                print(f"\nLast 7 Days:")
+                print("\nLast 7 Days:")
                 print(f"  Insights Generated:  {kpis['insights_generated_7d']}")
                 print(f"  Content Published:   {kpis['content_published_7d']}")
                 print(f"  Total Engagement:    {kpis['total_engagement_7d']}")
                 print(f"  Avg Engagement Rate: {kpis['avg_engagement_rate_7d']:.2%}")
-                print(f"\nPipeline:")
+                print("\nPipeline:")
                 print(f"  Content in Queue:    {kpis['content_in_pipeline']}")
                 print(f"\nLast Updated: {kpis['last_updated']}")
-                print("="*60 + "\n")
+                print("=" * 60 + "\n")
 
             elif choice == "9":
                 logger.info("Running full Phase 3 pipeline...")
@@ -141,55 +144,59 @@ async def run_interactive_mode():
                 logger.info("Loading conversion metrics...")
                 metrics = await orchestrator.conversion_agent.get_conversion_metrics(days=30)
 
-                print("\n" + "="*60)
+                print("\n" + "=" * 60)
                 print("CONVERSION METRICS (Last 30 Days)")
-                print("="*60)
+                print("=" * 60)
                 print(f"\nTotal DM Attempts:   {metrics['total_dm_attempts']}")
                 print(f"Conversions:         {metrics['conversions']}")
                 print(f"Conversion Rate:     {metrics['conversion_rate']:.2%}")
                 print(f"Open Rate:           {metrics['open_rate']:.2%}")
                 print(f"Click Rate:          {metrics['click_rate']:.2%}")
-                print("="*60 + "\n")
+                print("=" * 60 + "\n")
 
             elif choice == "12":
                 logger.info("Loading subscription stats...")
 
                 from src.database.connection import get_db
-                from src.database.models import Subscription, CommunityUser, UserTier
+                from src.database.models import CommunityUser, Subscription, UserTier
 
                 with get_db() as db:
                     total_users = db.query(CommunityUser).count()
-                    paying_users = db.query(CommunityUser).filter(
-                        CommunityUser.tier != UserTier.FREE
-                    ).count()
+                    paying_users = (
+                        db.query(CommunityUser).filter(CommunityUser.tier != UserTier.FREE).count()
+                    )
 
-                    active_subs = db.query(Subscription).filter(
-                        Subscription.status == "active"
-                    ).count()
+                    active_subs = (
+                        db.query(Subscription).filter(Subscription.status == "active").count()
+                    )
 
                     # Count by tier
-                    basic = db.query(CommunityUser).filter(
-                        CommunityUser.tier == UserTier.BASIC
-                    ).count()
-                    premium = db.query(CommunityUser).filter(
-                        CommunityUser.tier == UserTier.PREMIUM
-                    ).count()
-                    vip = db.query(CommunityUser).filter(
-                        CommunityUser.tier == UserTier.VIP
-                    ).count()
+                    basic = (
+                        db.query(CommunityUser).filter(CommunityUser.tier == UserTier.BASIC).count()
+                    )
+                    premium = (
+                        db.query(CommunityUser)
+                        .filter(CommunityUser.tier == UserTier.PREMIUM)
+                        .count()
+                    )
+                    vip = db.query(CommunityUser).filter(CommunityUser.tier == UserTier.VIP).count()
 
-                print("\n" + "="*60)
+                print("\n" + "=" * 60)
                 print("SUBSCRIPTION STATS")
-                print("="*60)
+                print("=" * 60)
                 print(f"\nTotal Users:         {total_users}")
                 print(f"Paying Members:      {paying_users}")
-                print(f"Conversion Rate:     {(paying_users/total_users*100):.1f}%" if total_users > 0 else "N/A")
+                print(
+                    f"Conversion Rate:     {(paying_users/total_users*100):.1f}%"
+                    if total_users > 0
+                    else "N/A"
+                )
                 print(f"\nActive Subscriptions: {active_subs}")
-                print(f"\nBy Tier:")
+                print("\nBy Tier:")
                 print(f"  Basic:   {basic}")
                 print(f"  Premium: {premium}")
                 print(f"  VIP:     {vip}")
-                print("="*60 + "\n")
+                print("=" * 60 + "\n")
 
             elif choice == "13":
                 logger.info("Running full Phase 4 pipeline...")
@@ -209,13 +216,17 @@ async def run_interactive_mode():
                 from src.database.models import ABTest, TestStatus
 
                 with get_db() as db:
-                    tests = db.query(ABTest).filter(
-                        ABTest.status == TestStatus.COMPLETED
-                    ).order_by(ABTest.completed_at.desc()).limit(10).all()
+                    tests = (
+                        db.query(ABTest)
+                        .filter(ABTest.status == TestStatus.COMPLETED)
+                        .order_by(ABTest.completed_at.desc())
+                        .limit(10)
+                        .all()
+                    )
 
-                    print("\n" + "="*60)
+                    print("\n" + "=" * 60)
                     print("A/B TEST RESULTS (Last 10 Completed)")
-                    print("="*60)
+                    print("=" * 60)
 
                     if not tests:
                         print("\nNo completed tests yet")
@@ -224,25 +235,35 @@ async def run_interactive_mode():
                             print(f"\nTest: {test.test_name}")
                             print(f"Variable: {test.variable_being_tested}")
                             print(f"Status: {test.status.value}")
-                            print(f"Improvement: {test.improvement_percentage:.1f}%" if test.improvement_percentage else "N/A")
-                            print(f"Confidence: {test.confidence_level:.0%}" if test.confidence_level else "N/A")
+                            print(
+                                f"Improvement: {test.improvement_percentage:.1f}%"
+                                if test.improvement_percentage
+                                else "N/A"
+                            )
+                            print(
+                                f"Confidence: {test.confidence_level:.0%}"
+                                if test.confidence_level
+                                else "N/A"
+                            )
                             print(f"Completed: {test.completed_at}")
 
-                    print("="*60 + "\n")
+                    print("=" * 60 + "\n")
 
             elif choice == "16":
                 logger.info("Calculating system health score...")
                 health = await orchestrator.get_system_health()
 
-                print("\n" + "="*60)
+                print("\n" + "=" * 60)
                 print("SYSTEM HEALTH SCORE")
-                print("="*60)
-                print(f"\nOverall Health: {health['health_score']}/100 ({health['status'].upper()})")
-                print(f"\nComponent Scores:")
-                for component, score in health['components'].items():
+                print("=" * 60)
+                print(
+                    f"\nOverall Health: {health['health_score']}/100 ({health['status'].upper()})"
+                )
+                print("\nComponent Scores:")
+                for component, score in health["components"].items():
                     print(f"  {component.replace('_', ' ').title()}: {score}/100")
                 print(f"\nTimestamp: {health['timestamp']}")
-                print("="*60 + "\n")
+                print("=" * 60 + "\n")
 
             elif choice == "17":
                 logger.info("Generating learning report...")
@@ -250,11 +271,11 @@ async def run_interactive_mode():
                 days = int(days) if days.isdigit() else 7
 
                 report = await orchestrator.generate_learning_report(days=days)
-                print("\n" + "="*60)
+                print("\n" + "=" * 60)
                 print(f"LEARNING REPORT (Last {days} Days)")
-                print("="*60)
+                print("=" * 60)
                 print(report)
-                print("="*60 + "\n")
+                print("=" * 60 + "\n")
 
             elif choice == "18":
                 logger.info("Starting scheduler...")

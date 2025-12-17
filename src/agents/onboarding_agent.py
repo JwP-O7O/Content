@@ -1,14 +1,13 @@
 """OnboardingAgent - Welcomes and onboards new paying members."""
 
-from typing import Dict, List
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
+from config.config import settings
 from src.agents.base_agent import BaseAgent
-from src.database.connection import get_db
-from src.database.models import CommunityUser, Subscription, UserTier
 from src.api_integrations.discord_api import DiscordAPI
 from src.api_integrations.telegram_api import TelegramAPI
-from config.config import settings
+from src.database.connection import get_db
+from src.database.models import CommunityUser, Subscription, UserTier
 
 
 class OnboardingAgent(BaseAgent):
@@ -30,8 +29,7 @@ class OnboardingAgent(BaseAgent):
         # Initialize Discord
         try:
             self.discord_api = DiscordAPI(
-                bot_token=settings.discord_bot_token,
-                guild_id=settings.discord_guild_id
+                bot_token=settings.discord_bot_token, guild_id=settings.discord_guild_id
             )
         except Exception as e:
             self.log_warning(f"Discord API not configured: {e}")
@@ -40,8 +38,7 @@ class OnboardingAgent(BaseAgent):
         # Initialize Telegram
         try:
             self.telegram_api = TelegramAPI(
-                bot_token=settings.telegram_bot_token,
-                channel_id=settings.telegram_channel_id
+                bot_token=settings.telegram_bot_token, channel_id=settings.telegram_channel_id
             )
         except Exception as e:
             self.log_warning(f"Telegram API not configured: {e}")
@@ -51,10 +48,10 @@ class OnboardingAgent(BaseAgent):
         self.tier_roles = {
             UserTier.BASIC: settings.discord_role_id_basic,
             UserTier.PREMIUM: settings.discord_role_id_premium,
-            UserTier.VIP: settings.discord_role_id_vip
+            UserTier.VIP: settings.discord_role_id_vip,
         }
 
-    async def execute(self) -> Dict:
+    async def execute(self) -> dict:
         """
         Execute the onboarding process for new members.
 
@@ -68,7 +65,7 @@ class OnboardingAgent(BaseAgent):
             "members_onboarded": 0,
             "discord_roles_assigned": 0,
             "welcome_messages_sent": 0,
-            "errors": []
+            "errors": [],
         }
 
         try:
@@ -98,9 +95,7 @@ class OnboardingAgent(BaseAgent):
                     self.log_error(error_msg)
                     results["errors"].append(error_msg)
 
-            self.log_info(
-                f"Onboarding complete: {results['members_onboarded']} members onboarded"
-            )
+            self.log_info(f"Onboarding complete: {results['members_onboarded']} members onboarded")
 
         except Exception as e:
             self.log_error(f"Onboarding execution error: {e}")
@@ -108,7 +103,7 @@ class OnboardingAgent(BaseAgent):
 
         return results
 
-    async def _get_new_members(self) -> List[CommunityUser]:
+    async def _get_new_members(self) -> list[CommunityUser]:
         """
         Get members who recently subscribed but haven't been onboarded.
 
@@ -116,19 +111,22 @@ class OnboardingAgent(BaseAgent):
             List of CommunityUser objects
         """
         # Consider members "new" if converted in last 24 hours
-        cutoff = datetime.utcnow() - timedelta(hours=24)
+        cutoff = datetime.now(tz=timezone.utc) - timedelta(hours=24)
 
         with get_db() as db:
-            new_members = db.query(CommunityUser).join(Subscription).filter(
-                CommunityUser.tier != UserTier.FREE,
-                CommunityUser.converted_at >= cutoff,
-                CommunityUser.subscription_status == "active"
-            ).all()
+            return (
+                db.query(CommunityUser)
+                .join(Subscription)
+                .filter(
+                    CommunityUser.tier != UserTier.FREE,
+                    CommunityUser.converted_at >= cutoff,
+                    CommunityUser.subscription_status == "active",
+                )
+                .all()
+            )
 
             # Filter out members who were already onboarded
             # (would track this with an 'onboarded_at' field in production)
-
-            return new_members
 
     async def _onboard_member(self, member: CommunityUser) -> bool:
         """
@@ -148,8 +146,7 @@ class OnboardingAgent(BaseAgent):
 
             if role_id:
                 await self.discord_api.add_role_to_member(
-                    member_id=member.discord_id,
-                    role_id=role_id
+                    member_id=member.discord_id, role_id=role_id
                 )
 
                 self.log_info(f"Discord role assigned to {member.discord_username}")
@@ -180,17 +177,14 @@ class OnboardingAgent(BaseAgent):
 
         # Create personalized welcome embed
         embed = await self.discord_api.create_welcome_embed(
-            member_name=member.discord_username or "Member",
-            tier=member.tier.value
+            member_name=member.discord_username or "Member", tier=member.tier.value
         )
 
         # Get welcome channel ID (would be in settings)
         welcome_channel_id = "your_welcome_channel_id"  # Configure in settings
 
         await self.discord_api.send_message(
-            channel_id=welcome_channel_id,
-            content=f"Welcome <@{member.discord_id}>!",
-            embed=embed
+            channel_id=welcome_channel_id, content=f"Welcome <@{member.discord_id}>!", embed=embed
         )
 
         self.log_info(f"Discord welcome sent to {member.discord_username}")
@@ -207,10 +201,7 @@ class OnboardingAgent(BaseAgent):
 
         welcome_message = self._generate_telegram_welcome(member)
 
-        await self.telegram_api.send_message(
-            text=welcome_message,
-            parse_mode="Markdown"
-        )
+        await self.telegram_api.send_message(text=welcome_message, parse_mode="Markdown")
 
         self.log_info(f"Telegram welcome sent to {member.telegram_username}")
 
@@ -225,23 +216,19 @@ class OnboardingAgent(BaseAgent):
             Welcome message text
         """
         tier_benefits = {
-            UserTier.BASIC: [
-                "Daily market insights",
-                "Trading signals",
-                "Community chat access"
-            ],
+            UserTier.BASIC: ["Daily market insights", "Trading signals", "Community chat access"],
             UserTier.PREMIUM: [
                 "Everything in Basic",
                 "Early access to alpha signals",
                 "Weekly market reports",
-                "Priority support"
+                "Priority support",
             ],
             UserTier.VIP: [
                 "Everything in Premium",
                 "1-on-1 strategy calls",
                 "Exclusive VIP-only signals",
-                "Direct access to analysts"
-            ]
+                "Direct access to analysts",
+            ],
         }
 
         benefits = tier_benefits.get(member.tier, [])
@@ -274,10 +261,7 @@ _Automated by Content Creator AI_
         return message
 
     async def handle_subscription_upgrade(
-        self,
-        user_id: int,
-        old_tier: UserTier,
-        new_tier: UserTier
+        self, user_id: int, old_tier: UserTier, new_tier: UserTier
     ):
         """
         Handle when a user upgrades their subscription.
@@ -288,9 +272,7 @@ _Automated by Content Creator AI_
             new_tier: New tier
         """
         with get_db() as db:
-            user = db.query(CommunityUser).filter(
-                CommunityUser.id == user_id
-            ).first()
+            user = db.query(CommunityUser).filter(CommunityUser.id == user_id).first()
 
             if not user:
                 return
@@ -303,22 +285,18 @@ _Automated by Content Creator AI_
 
                 if old_role_id:
                     await self.discord_api.remove_role_from_member(
-                        member_id=user.discord_id,
-                        role_id=old_role_id
+                        member_id=user.discord_id, role_id=old_role_id
                     )
 
                 if new_role_id:
                     await self.discord_api.add_role_to_member(
-                        member_id=user.discord_id,
-                        role_id=new_role_id
+                        member_id=user.discord_id, role_id=new_role_id
                     )
 
             # Send upgrade congrats message
             if self.discord_api:
                 # Would send to a channel
-                self.log_info(
-                    f"User {user.id} upgraded from {old_tier.value} to {new_tier.value}"
-                )
+                self.log_info(f"User {user.id} upgraded from {old_tier.value} to {new_tier.value}")
 
     async def handle_subscription_cancellation(self, user_id: int):
         """
@@ -328,9 +306,7 @@ _Automated by Content Creator AI_
             user_id: CommunityUser ID
         """
         with get_db() as db:
-            user = db.query(CommunityUser).filter(
-                CommunityUser.id == user_id
-            ).first()
+            user = db.query(CommunityUser).filter(CommunityUser.id == user_id).first()
 
             if not user:
                 return
@@ -341,8 +317,7 @@ _Automated by Content Creator AI_
 
                 if role_id:
                     await self.discord_api.remove_role_from_member(
-                        member_id=user.discord_id,
-                        role_id=role_id
+                        member_id=user.discord_id, role_id=role_id
                     )
 
             # Update user tier
@@ -370,17 +345,11 @@ _Automated by Content Creator AI_
             "guides": [
                 "Getting Started with Crypto Trading",
                 "How to Read Our Signals",
-                "Risk Management Basics"
+                "Risk Management Basics",
             ],
-            "resources": [
-                "Community Guidelines",
-                "FAQ",
-                "Support Channels"
-            ]
+            "resources": ["Community Guidelines", "FAQ", "Support Channels"],
         }
 
-        self.log_info(
-            f"Onboarding materials prepared for {member.id}: {materials}"
-        )
+        self.log_info(f"Onboarding materials prepared for {member.id}: {materials}")
 
         # Would actually send these via Discord/Telegram/Email

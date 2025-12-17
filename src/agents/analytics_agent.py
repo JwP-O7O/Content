@@ -1,14 +1,10 @@
 """AnalyticsAgent - Tracks and analyzes system performance."""
 
-from typing import Dict, List
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from src.agents.base_agent import BaseAgent
 from src.database.connection import get_db
-from src.database.models import (
-    PublishedContent, Insight, ContentPlan,
-    AgentLog, MarketData
-)
+from src.database.models import AgentLog, ContentPlan, Insight, PublishedContent
 from src.utils.metrics_collector import MetricsCollector
 
 
@@ -29,7 +25,7 @@ class AnalyticsAgent(BaseAgent):
         super().__init__("AnalyticsAgent")
         self.metrics_collector = MetricsCollector()
 
-    async def execute(self) -> Dict:
+    async def execute(self) -> dict:
         """
         Execute analytics collection and reporting.
 
@@ -43,33 +39,28 @@ class AnalyticsAgent(BaseAgent):
             "performance_summary": {},
             "trending_topics": [],
             "agent_performance": {},
-            "recommendations": []
+            "recommendations": [],
         }
 
         try:
             # Collect latest metrics
-            metrics_results = await self.metrics_collector.collect_all_metrics(
-                hours_back=48
-            )
+            metrics_results = await self.metrics_collector.collect_all_metrics(hours_back=48)
             results["metrics_collected"] = metrics_results["content_updated"] > 0
 
             # Generate performance summary
-            results["performance_summary"] = (
-                await self.metrics_collector.get_performance_summary(days=7)
+            results["performance_summary"] = await self.metrics_collector.get_performance_summary(
+                days=7
             )
 
             # Identify trending topics
-            results["trending_topics"] = (
-                await self.metrics_collector.get_trending_topics(days=7)
-            )
+            results["trending_topics"] = await self.metrics_collector.get_trending_topics(days=7)
 
             # Analyze agent performance
             results["agent_performance"] = await self._analyze_agent_performance()
 
             # Generate recommendations
             results["recommendations"] = await self._generate_recommendations(
-                results["performance_summary"],
-                results["trending_topics"]
+                results["performance_summary"], results["trending_topics"]
             )
 
             self.log_info("Analytics collection complete")
@@ -80,7 +71,7 @@ class AnalyticsAgent(BaseAgent):
 
         return results
 
-    async def _analyze_agent_performance(self) -> Dict:
+    async def _analyze_agent_performance(self) -> dict:
         """
         Analyze the performance of all agents.
 
@@ -91,11 +82,9 @@ class AnalyticsAgent(BaseAgent):
 
         with get_db() as db:
             # Get agent logs from last 7 days
-            cutoff = datetime.utcnow() - timedelta(days=7)
+            cutoff = datetime.now(tz=timezone.utc) - timedelta(days=7)
 
-            logs = db.query(AgentLog).filter(
-                AgentLog.timestamp >= cutoff
-            ).all()
+            logs = db.query(AgentLog).filter(AgentLog.timestamp >= cutoff).all()
 
             if not logs:
                 return {"message": "No agent activity logged"}
@@ -113,7 +102,7 @@ class AnalyticsAgent(BaseAgent):
                         "failed_runs": 0,
                         "total_execution_time": 0,
                         "avg_execution_time": 0,
-                        "success_rate": 0
+                        "success_rate": 0,
                     }
 
                 agent_stats[agent_name]["total_runs"] += 1
@@ -133,17 +122,11 @@ class AnalyticsAgent(BaseAgent):
 
                 if total_runs > 0:
                     stats["success_rate"] = stats["successful_runs"] / total_runs
-                    stats["avg_execution_time"] = (
-                        stats["total_execution_time"] / total_runs
-                    )
+                    stats["avg_execution_time"] = stats["total_execution_time"] / total_runs
 
             return agent_stats
 
-    async def _generate_recommendations(
-        self,
-        performance: Dict,
-        trending: List[Dict]
-    ) -> List[str]:
+    async def _generate_recommendations(self, performance: dict, trending: list[dict]) -> list[str]:
         """
         Generate actionable recommendations based on analytics.
 
@@ -167,9 +150,7 @@ class AnalyticsAgent(BaseAgent):
                 "  - Using more visual content"
             )
         elif avg_engagement > 0.05:  # Greater than 5%
-            recommendations.append(
-                "✅ Strong engagement! Continue current strategy and scale up"
-            )
+            recommendations.append("✅ Strong engagement! Continue current strategy and scale up")
 
         # Trending topics recommendations
         if trending:
@@ -185,8 +166,7 @@ class AnalyticsAgent(BaseAgent):
 
         if platform_breakdown:
             best_platform = max(
-                platform_breakdown.items(),
-                key=lambda x: x[1].get("avg_engagement_rate", 0)
+                platform_breakdown.items(), key=lambda x: x[1].get("avg_engagement_rate", 0)
             )
 
             recommendations.append(
@@ -207,8 +187,7 @@ class AnalyticsAgent(BaseAgent):
             )
         elif posts_per_day > 10:
             recommendations.append(
-                f"⚡ High volume: {posts_per_day:.1f} posts/day. "
-                "Monitor for audience fatigue."
+                f"⚡ High volume: {posts_per_day:.1f} posts/day. " "Monitor for audience fatigue."
             )
 
         return recommendations
@@ -233,7 +212,7 @@ class AnalyticsAgent(BaseAgent):
 ╔══════════════════════════════════════════════════════════╗
 ║          CONTENT CREATOR - ANALYTICS REPORT              ║
 ║          Period: Last {days} days                            ║
-║          Generated: {datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')}        ║
+║          Generated: {datetime.now(tz=timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}        ║
 ╚══════════════════════════════════════════════════════════╝
 
 📊 PERFORMANCE SUMMARY
@@ -271,7 +250,9 @@ Preview:        {best['preview']}...
 {'─' * 60}
 """
             for i, topic in enumerate(trending[:5], 1):
-                report += f"{i}. {topic['asset']} - {topic['type']} ({topic['avg_engagement']:.2%})\n"
+                report += (
+                    f"{i}. {topic['asset']} - {topic['type']} ({topic['avg_engagement']:.2%})\n"
+                )
 
             report += "\n"
 
@@ -314,7 +295,7 @@ End of Report
 
         return report
 
-    async def get_kpi_dashboard(self) -> Dict:
+    async def get_kpi_dashboard(self) -> dict:
         """
         Get key performance indicators for dashboard display.
 
@@ -322,7 +303,7 @@ End of Report
             Dictionary with KPIs
         """
         with get_db() as db:
-            now = datetime.utcnow()
+            now = datetime.now(tz=timezone.utc)
 
             # Last 24 hours
             last_24h = now - timedelta(hours=24)
@@ -331,42 +312,40 @@ End of Report
             last_7d = now - timedelta(days=7)
 
             # Count insights generated
-            insights_24h = db.query(Insight).filter(
-                Insight.timestamp >= last_24h
-            ).count()
+            insights_24h = db.query(Insight).filter(Insight.timestamp >= last_24h).count()
 
-            insights_7d = db.query(Insight).filter(
-                Insight.timestamp >= last_7d
-            ).count()
+            insights_7d = db.query(Insight).filter(Insight.timestamp >= last_7d).count()
 
             # Count content published
-            published_24h = db.query(PublishedContent).filter(
-                PublishedContent.published_at >= last_24h
-            ).count()
+            published_24h = (
+                db.query(PublishedContent).filter(PublishedContent.published_at >= last_24h).count()
+            )
 
-            published_7d = db.query(PublishedContent).filter(
-                PublishedContent.published_at >= last_7d
-            ).count()
+            published_7d = (
+                db.query(PublishedContent).filter(PublishedContent.published_at >= last_7d).count()
+            )
 
             # Get total engagement
-            content_7d = db.query(PublishedContent).filter(
-                PublishedContent.published_at >= last_7d
-            ).all()
+            content_7d = (
+                db.query(PublishedContent).filter(PublishedContent.published_at >= last_7d).all()
+            )
 
             total_engagement = sum(
-                (c.likes or 0) + (c.comments or 0) + (c.shares or 0)
-                for c in content_7d
+                (c.likes or 0) + (c.comments or 0) + (c.shares or 0) for c in content_7d
             )
 
             avg_engagement_rate = (
                 sum(c.engagement_rate or 0 for c in content_7d) / len(content_7d)
-                if content_7d else 0
+                if content_7d
+                else 0
             )
 
             # Content in pipeline
-            pending_plans = db.query(ContentPlan).filter(
-                ContentPlan.status.in_(["pending", "ready", "awaiting_approval"])
-            ).count()
+            pending_plans = (
+                db.query(ContentPlan)
+                .filter(ContentPlan.status.in_(["pending", "ready", "awaiting_approval"]))
+                .count()
+            )
 
             return {
                 "insights_generated_24h": insights_24h,
@@ -376,5 +355,5 @@ End of Report
                 "total_engagement_7d": total_engagement,
                 "avg_engagement_rate_7d": avg_engagement_rate,
                 "content_in_pipeline": pending_plans,
-                "last_updated": now.isoformat()
+                "last_updated": now.isoformat(),
             }

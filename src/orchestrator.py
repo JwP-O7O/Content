@@ -1,7 +1,8 @@
 """Main orchestrator that coordinates all agents."""
 
 import asyncio
-from datetime import datetime
+from datetime import datetime, timezone
+
 from loguru import logger
 
 from src.agents.market_scanner_agent import MarketScannerAgent
@@ -9,26 +10,27 @@ from src.agents.market_scanner_agent import MarketScannerAgent
 # Optional import - AnalysisAgent requires pandas which may not be available on Termux
 try:
     from src.agents.analysis_agent import AnalysisAgent
+
     ANALYSIS_AGENT_AVAILABLE = True
 except ImportError as e:
     logger.warning(f"AnalysisAgent not available: {e}")
     AnalysisAgent = None
     ANALYSIS_AGENT_AVAILABLE = False
 
-from src.agents.content_strategist_agent import ContentStrategistAgent
-from src.agents.content_creation_agent import ContentCreationAgent
-from src.agents.publishing_agent import PublishingAgent
-from src.agents.engagement_agent import EngagementAgent
-from src.agents.image_generation_agent import ImageGenerationAgent
-from src.agents.analytics_agent import AnalyticsAgent
-from src.agents.conversion_agent import ConversionAgent
-from src.agents.onboarding_agent import OnboardingAgent
-from src.agents.exclusive_content_agent import ExclusiveContentAgent
-from src.agents.community_moderator_agent import CommunityModeratorAgent
-from src.agents.strategy_tuning_agent import StrategyTuningAgent
 from src.agents.ab_testing_agent import ABTestingAgent
-from src.agents.performance_analytics_agent import PerformanceAnalyticsAgent
+from src.agents.analytics_agent import AnalyticsAgent
+from src.agents.community_moderator_agent import CommunityModeratorAgent
+from src.agents.content_creation_agent import ContentCreationAgent
+from src.agents.content_strategist_agent import ContentStrategistAgent
+from src.agents.conversion_agent import ConversionAgent
+from src.agents.engagement_agent import EngagementAgent
+from src.agents.exclusive_content_agent import ExclusiveContentAgent
 from src.agents.feedback_loop_coordinator import FeedbackLoopCoordinator
+from src.agents.image_generation_agent import ImageGenerationAgent
+from src.agents.onboarding_agent import OnboardingAgent
+from src.agents.performance_analytics_agent import PerformanceAnalyticsAgent
+from src.agents.publishing_agent import PublishingAgent
+from src.agents.strategy_tuning_agent import StrategyTuningAgent
 
 
 class AgentOrchestrator:
@@ -82,14 +84,11 @@ class AgentOrchestrator:
         Returns:
             Dictionary with results from each agent
         """
-        logger.info("="*50)
+        logger.info("=" * 50)
         logger.info("Starting Full Agent Pipeline")
-        logger.info("="*50)
+        logger.info("=" * 50)
 
-        pipeline_results = {
-            "timestamp": datetime.utcnow().isoformat(),
-            "agents": {}
-        }
+        pipeline_results = {"timestamp": datetime.now(tz=timezone.utc).isoformat(), "agents": {}}
 
         try:
             # Step 1: Market Scanner
@@ -104,7 +103,10 @@ class AgentOrchestrator:
                 pipeline_results["agents"]["analysis"] = analysis_results
             else:
                 logger.warning("Step 2/5: Skipping Analysis Agent (not available)")
-                pipeline_results["agents"]["analysis"] = {"status": "skipped", "reason": "pandas not available"}
+                pipeline_results["agents"]["analysis"] = {
+                    "status": "skipped",
+                    "reason": "pandas not available",
+                }
 
             # Step 3: Content Strategist
             logger.info("Step 3/5: Running Content Strategist...")
@@ -121,15 +123,21 @@ class AgentOrchestrator:
             publishing_results = await self.publisher.run()
             pipeline_results["agents"]["publisher"] = publishing_results
 
-            logger.info("="*50)
+            logger.info("=" * 50)
             logger.info("Pipeline Complete!")
-            logger.info("="*50)
+            logger.info("=" * 50)
             logger.info(f"Market Data: {scan_results.get('market_data_collected', 0)} points")
+            logger.info(f"Insights: {analysis_results.get('insights_generated', 0)} generated")
+            logger.info(
+                f"Content Plans: {strategy_results.get('content_plans_created', 0)} created"
+            )
             if self.analysis_agent:
                 logger.info(f"Insights: {analysis_results.get('insights_generated', 0)} generated")
             logger.info(f"Content Plans: {strategy_results.get('content_plans_created', 0)} created")
             logger.info(f"Content Created: {creation_results.get('content_created', 0)} pieces")
-            logger.info(f"Content Published: {publishing_results.get('content_published', 0)} pieces")
+            logger.info(
+                f"Content Published: {publishing_results.get('content_published', 0)} pieces"
+            )
 
             pipeline_results["status"] = "success"
 
@@ -149,7 +157,10 @@ class AgentOrchestrator:
         """Run only the analysis step."""
         if not self.analysis_agent:
             logger.error("AnalysisAgent not available (pandas not installed)")
-            return {"status": "error", "message": "AnalysisAgent requires pandas which is not available"}
+            return {
+                "status": "error",
+                "message": "AnalysisAgent requires pandas which is not available",
+            }
         logger.info("Running analysis only...")
         return await self.analysis_agent.run()
 
@@ -199,9 +210,7 @@ class AgentOrchestrator:
         results["analytics"] = await self.analytics_agent.run()
 
         # Plan content repurposing based on performance
-        results["repurposing"] = (
-            await self.content_strategist.plan_content_repurposing()
-        )
+        results["repurposing"] = await self.content_strategist.plan_content_repurposing()
 
         return results
 
@@ -212,14 +221,11 @@ class AgentOrchestrator:
         Returns:
             Dictionary with results from all agents
         """
-        logger.info("="*50)
+        logger.info("=" * 50)
         logger.info("Starting Full Pipeline (Phase 2)")
-        logger.info("="*50)
+        logger.info("=" * 50)
 
-        pipeline_results = {
-            "timestamp": datetime.utcnow().isoformat(),
-            "agents": {}
-        }
+        pipeline_results = {"timestamp": datetime.now(tz=timezone.utc).isoformat(), "agents": {}}
 
         try:
             # Step 1: Market Scanner
@@ -234,7 +240,10 @@ class AgentOrchestrator:
                 pipeline_results["agents"]["analysis"] = analysis_results
             else:
                 logger.warning("Step 2/9: Skipping Analysis Agent (not available)")
-                pipeline_results["agents"]["analysis"] = {"status": "skipped", "reason": "pandas not available"}
+                pipeline_results["agents"]["analysis"] = {
+                    "status": "skipped",
+                    "reason": "pandas not available",
+                }
 
             # Step 3: Image Generation
             logger.info("Step 3/9: Running Image Generator...")
@@ -268,22 +277,28 @@ class AgentOrchestrator:
 
             # Step 9: Content Repurposing
             logger.info("Step 9/9: Planning Content Repurposing...")
-            repurpose_results = (
-                await self.content_strategist.plan_content_repurposing()
-            )
+            repurpose_results = await self.content_strategist.plan_content_repurposing()
             pipeline_results["agents"]["repurposing"] = repurpose_results
 
-            logger.info("="*50)
+            logger.info("=" * 50)
             logger.info("Phase 2 Pipeline Complete!")
-            logger.info("="*50)
+            logger.info("=" * 50)
             logger.info(f"Market Data: {scan_results.get('market_data_collected', 0)} points")
             logger.info(f"Insights: {analysis_results.get('insights_generated', 0)} generated")
             logger.info(f"Images: {image_results.get('images_generated', 0)} created")
-            logger.info(f"Content Plans: {strategy_results.get('content_plans_created', 0)} created")
+            logger.info(
+                f"Content Plans: {strategy_results.get('content_plans_created', 0)} created"
+            )
             logger.info(f"Content Created: {creation_results.get('content_created', 0)} pieces")
-            logger.info(f"Content Published: {publishing_results.get('content_published', 0)} pieces")
-            logger.info(f"Engagement Actions: {engagement_results.get('replies_sent', 0)} replies, {engagement_results.get('likes_given', 0)} likes")
-            logger.info(f"Repurpose Plans: {repurpose_results.get('repurpose_plans_created', 0)} created")
+            logger.info(
+                f"Content Published: {publishing_results.get('content_published', 0)} pieces"
+            )
+            logger.info(
+                f"Engagement Actions: {engagement_results.get('replies_sent', 0)} replies, {engagement_results.get('likes_given', 0)} likes"
+            )
+            logger.info(
+                f"Repurpose Plans: {repurpose_results.get('repurpose_plans_created', 0)} created"
+            )
 
             pipeline_results["status"] = "success"
 
@@ -301,14 +316,11 @@ class AgentOrchestrator:
         Returns:
             Dictionary with results from all agents
         """
-        logger.info("="*50)
+        logger.info("=" * 50)
         logger.info("Starting Full Pipeline (Phase 3)")
-        logger.info("="*50)
+        logger.info("=" * 50)
 
-        pipeline_results = {
-            "timestamp": datetime.utcnow().isoformat(),
-            "agents": {}
-        }
+        pipeline_results = {"timestamp": datetime.now(tz=timezone.utc).isoformat(), "agents": {}}
 
         try:
             # Step 1-9: Phase 2 pipeline
@@ -335,13 +347,19 @@ class AgentOrchestrator:
             moderation_results = await self.community_moderator.run()
             pipeline_results["agents"]["moderation"] = moderation_results
 
-            logger.info("="*50)
+            logger.info("=" * 50)
             logger.info("Phase 3 Pipeline Complete!")
-            logger.info("="*50)
+            logger.info("=" * 50)
             logger.info(f"Conversions: {conversion_results.get('dms_sent', 0)} DMs sent")
-            logger.info(f"Onboarding: {onboarding_results.get('members_onboarded', 0)} members onboarded")
-            logger.info(f"Exclusive Content: {exclusive_results.get('content_published', 0)} pieces published")
-            logger.info(f"Moderation: {moderation_results.get('violations_detected', 0)} violations detected")
+            logger.info(
+                f"Onboarding: {onboarding_results.get('members_onboarded', 0)} members onboarded"
+            )
+            logger.info(
+                f"Exclusive Content: {exclusive_results.get('content_published', 0)} pieces published"
+            )
+            logger.info(
+                f"Moderation: {moderation_results.get('violations_detected', 0)} violations detected"
+            )
 
             pipeline_results["status"] = "success"
 
@@ -392,14 +410,11 @@ class AgentOrchestrator:
         Returns:
             Dictionary with results from all agents
         """
-        logger.info("="*50)
+        logger.info("=" * 50)
         logger.info("Starting Full Pipeline (Phase 4)")
-        logger.info("="*50)
+        logger.info("=" * 50)
 
-        pipeline_results = {
-            "timestamp": datetime.utcnow().isoformat(),
-            "agents": {}
-        }
+        pipeline_results = {"timestamp": datetime.now(tz=timezone.utc).isoformat(), "agents": {}}
 
         try:
             # Step 1-13: Phase 3 pipeline
@@ -421,12 +436,16 @@ class AgentOrchestrator:
             feedback_results = await self.feedback_loop.run()
             pipeline_results["agents"]["feedback_loop"] = feedback_results
 
-            logger.info("="*50)
+            logger.info("=" * 50)
             logger.info("Phase 4 Pipeline Complete!")
-            logger.info("="*50)
+            logger.info("=" * 50)
             logger.info(f"Performance Snapshots: {analytics_results.get('snapshots_created', 0)}")
-            logger.info(f"A/B Tests: {ab_results.get('new_tests_created', 0)} created, {ab_results.get('tests_completed', 0)} completed")
-            logger.info(f"Optimization Cycle: {'Complete' if feedback_results.get('cycle_complete') else 'Incomplete'}")
+            logger.info(
+                f"A/B Tests: {ab_results.get('new_tests_created', 0)} created, {ab_results.get('tests_completed', 0)} completed"
+            )
+            logger.info(
+                f"Optimization Cycle: {'Complete' if feedback_results.get('cycle_complete') else 'Incomplete'}"
+            )
 
             pipeline_results["status"] = "success"
 
@@ -476,9 +495,7 @@ async def main():
     orchestrator = AgentOrchestrator()
 
     # Run the full pipeline
-    results = await orchestrator.run_full_pipeline()
-
-    return results
+    return await orchestrator.run_full_pipeline()
 
 
 if __name__ == "__main__":
