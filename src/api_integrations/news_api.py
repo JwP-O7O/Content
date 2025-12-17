@@ -38,7 +38,7 @@ class NewsAPI:
             try:
                 feed = feedparser.parse(feed_url)
 
-                for entry in feed.entries[:max_articles // len(self.rss_feeds)]:
+                for entry in feed.entries[: max_articles // len(self.rss_feeds)]:
                     article = {
                         "title": entry.get("title", ""),
                         "url": entry.get("link", ""),
@@ -47,7 +47,7 @@ class NewsAPI:
                         "summary": entry.get("summary", ""),
                         "content": entry.get("content", [{}])[0].get("value", "")
                         if entry.get("content")
-                        else entry.get("description", "")
+                        else entry.get("description", ""),
                     }
                     all_articles.append(article)
 
@@ -72,6 +72,7 @@ class NewsAPI:
         """
         try:
             from dateutil import parser
+
             return parser.parse(date_string)
         except (ValueError, ImportError, TypeError):
             return datetime.now(tz=timezone.utc)
@@ -91,9 +92,11 @@ class NewsAPI:
         cutoff_date = datetime.now(tz=timezone.utc) - timedelta(days=days_back)
 
         return [
-            article for article in all_news
+            article
+            for article in all_news
             if keyword.lower() in article["title"].lower()
-            or (keyword.lower() in article["summary"].lower()
-            and article["published_at"] >= cutoff_date)
+            or (
+                keyword.lower() in article["summary"].lower()
+                and article["published_at"] >= cutoff_date
+            )
         ]
-

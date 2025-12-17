@@ -30,8 +30,7 @@ class ExclusiveContentAgent(BaseAgent):
         # Initialize Discord
         try:
             self.discord_api = DiscordAPI(
-                bot_token=settings.discord_bot_token,
-                guild_id=settings.discord_guild_id
+                bot_token=settings.discord_bot_token, guild_id=settings.discord_guild_id
             )
         except Exception as e:
             self.log_warning(f"Discord API not configured: {e}")
@@ -40,8 +39,7 @@ class ExclusiveContentAgent(BaseAgent):
         # Initialize Telegram
         try:
             self.telegram_api = TelegramAPI(
-                bot_token=settings.telegram_bot_token,
-                channel_id=settings.telegram_channel_id
+                bot_token=settings.telegram_bot_token, channel_id=settings.telegram_channel_id
             )
         except Exception as e:
             self.log_warning(f"Telegram API not configured: {e}")
@@ -49,25 +47,25 @@ class ExclusiveContentAgent(BaseAgent):
 
         # Confidence thresholds for different tiers
         self.tier_thresholds = {
-            UserTier.BASIC: 0.85,      # Good insights
-            UserTier.PREMIUM: 0.90,    # High-confidence insights
-            UserTier.VIP: 0.95         # Ultra high-confidence alpha
+            UserTier.BASIC: 0.85,  # Good insights
+            UserTier.PREMIUM: 0.90,  # High-confidence insights
+            UserTier.VIP: 0.95,  # Ultra high-confidence alpha
         }
 
         # Channel IDs for different tiers (should be in settings)
         self.tier_channels = {
             UserTier.BASIC: {
                 "discord": "basic_signals_channel_id",
-                "telegram": "basic_telegram_channel_id"
+                "telegram": "basic_telegram_channel_id",
             },
             UserTier.PREMIUM: {
                 "discord": "premium_signals_channel_id",
-                "telegram": "premium_telegram_channel_id"
+                "telegram": "premium_telegram_channel_id",
             },
             UserTier.VIP: {
                 "discord": "vip_alpha_channel_id",
-                "telegram": "vip_telegram_channel_id"
-            }
+                "telegram": "vip_telegram_channel_id",
+            },
         }
 
     async def execute(self) -> dict:
@@ -85,7 +83,7 @@ class ExclusiveContentAgent(BaseAgent):
             "basic_tier": 0,
             "premium_tier": 0,
             "vip_tier": 0,
-            "errors": []
+            "errors": [],
         }
 
         try:
@@ -142,15 +140,17 @@ class ExclusiveContentAgent(BaseAgent):
             # Get high-confidence insights from last 24 hours
             cutoff = datetime.now(tz=timezone.utc) - timedelta(hours=24)
 
-            return db.query(Insight).filter(
-                Insight.is_published.is_(False),  # Not yet published publicly
-                Insight.is_exclusive.is_(False),  # Not yet marked as exclusive
-                Insight.confidence >= self.tier_thresholds[UserTier.BASIC],
-                Insight.timestamp >= cutoff
-            ).order_by(
-                Insight.confidence.desc()
-            ).all()
-
+            return (
+                db.query(Insight)
+                .filter(
+                    Insight.is_published.is_(False),  # Not yet published publicly
+                    Insight.is_exclusive.is_(False),  # Not yet marked as exclusive
+                    Insight.confidence >= self.tier_thresholds[UserTier.BASIC],
+                    Insight.timestamp >= cutoff,
+                )
+                .order_by(Insight.confidence.desc())
+                .all()
+            )
 
     def _determine_tier_for_insight(self, insight: Insight) -> UserTier:
         """
@@ -176,11 +176,7 @@ class ExclusiveContentAgent(BaseAgent):
 
         return None
 
-    async def _publish_exclusive_content(
-        self,
-        insight: Insight,
-        tier: UserTier
-    ) -> bool:
+    async def _publish_exclusive_content(self, insight: Insight, tier: UserTier) -> bool:
         """
         Publish exclusive content to the appropriate tier channels.
 
@@ -206,8 +202,7 @@ class ExclusiveContentAgent(BaseAgent):
             channel_id = self.tier_channels[tier]["discord"]
 
             result = await self.discord_api.send_message(
-                channel_id=channel_id,
-                content=content_text
+                channel_id=channel_id, content=content_text
             )
 
             if result:
@@ -220,17 +215,14 @@ class ExclusiveContentAgent(BaseAgent):
                     content_text=content_text,
                     platform="discord",
                     channel_id=channel_id,
-                    message_id=result["id"]
+                    message_id=result["id"],
                 )
 
         # Publish to Telegram
         telegram_published = False
 
         if self.telegram_api:
-            result = await self.telegram_api.send_message(
-                text=content_text,
-                parse_mode="Markdown"
-            )
+            result = await self.telegram_api.send_message(text=content_text, parse_mode="Markdown")
 
             if result:
                 telegram_published = True
@@ -241,7 +233,7 @@ class ExclusiveContentAgent(BaseAgent):
                     tier=tier,
                     content_text=content_text,
                     platform="telegram",
-                    message_id=str(result["message_id"])
+                    message_id=str(result["message_id"]),
                 )
 
         # Mark insight as exclusive
@@ -266,7 +258,7 @@ class ExclusiveContentAgent(BaseAgent):
         tier_prefixes = {
             UserTier.BASIC: "🔔 SIGNAL",
             UserTier.PREMIUM: "⭐ PREMIUM ALPHA",
-            UserTier.VIP: "💎 VIP EXCLUSIVE"
+            UserTier.VIP: "💎 VIP EXCLUSIVE",
         }
 
         prefix = tier_prefixes.get(tier, "🔔")
@@ -317,7 +309,7 @@ class ExclusiveContentAgent(BaseAgent):
         content_text: str,
         platform: str,
         channel_id: Optional[str] = None,
-        message_id: Optional[str] = None
+        message_id: Optional[str] = None,
     ):
         """
         Save exclusive content to database for tracking.
@@ -337,7 +329,7 @@ class ExclusiveContentAgent(BaseAgent):
                 platform=platform,
                 min_tier_required=tier,
                 channel_id=channel_id,
-                message_id=message_id
+                message_id=message_id,
             )
 
             db.add(exclusive)
@@ -358,9 +350,9 @@ class ExclusiveContentAgent(BaseAgent):
         cutoff = datetime.now(tz=timezone.utc) - timedelta(days=days)
 
         with get_db() as db:
-            content_items = db.query(ExclusiveContent).filter(
-                ExclusiveContent.published_at >= cutoff
-            ).all()
+            content_items = (
+                db.query(ExclusiveContent).filter(ExclusiveContent.published_at >= cutoff).all()
+            )
 
             stats_by_tier = {}
 
@@ -373,12 +365,13 @@ class ExclusiveContentAgent(BaseAgent):
                     "total_reactions": sum(c.reactions or 0 for c in tier_content),
                     "avg_views": (
                         sum(c.views or 0 for c in tier_content) / len(tier_content)
-                        if tier_content else 0
-                    )
+                        if tier_content
+                        else 0
+                    ),
                 }
 
             return {
                 "period_days": days,
                 "total_exclusive_posts": len(content_items),
-                "by_tier": stats_by_tier
+                "by_tier": stats_by_tier,
             }

@@ -18,10 +18,10 @@ def setup_logger():
         sys.stdout,
         colorize=True,
         format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | "
-               "<level>{level: <8}</level> | "
-               "<cyan>{name}</cyan>:<cyan>{function}</cyan> - "
-               "<level>{message}</level>",
-        level=settings.log_level
+        "<level>{level: <8}</level> | "
+        "<cyan>{name}</cyan>:<cyan>{function}</cyan> - "
+        "<level>{message}</level>",
+        level=settings.log_level,
     )
 
     # Add file handler
@@ -31,8 +31,7 @@ def setup_logger():
         retention="30 days",
         compression="zip",
         level=settings.log_level,
-        format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | "
-               "{name}:{function} - {message}"
+        format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | " "{name}:{function} - {message}",
     )
 
     logger.info("Logger initialized")

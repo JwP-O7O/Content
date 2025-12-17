@@ -52,7 +52,7 @@ class ExchangeAPI:
                             "high_24h": float(data["highPrice"]),
                             "low_24h": float(data["lowPrice"]),
                             "timestamp": datetime.now(tz=timezone.utc),
-                            "raw_data": data
+                            "raw_data": data,
                         }
                     logger.error(f"Failed to fetch ticker for {symbol}: {response.status}")
                     return None
@@ -80,16 +80,15 @@ class ExchangeAPI:
 
                         # Filter for USDT pairs and valid data
                         usdt_pairs = [
-                            t for t in all_tickers
+                            t
+                            for t in all_tickers
                             if t["symbol"].endswith("USDT")
                             and float(t["volume"]) > 1000000  # Min volume filter
                         ]
 
                         # Sort by price change percentage
                         sorted_tickers = sorted(
-                            usdt_pairs,
-                            key=lambda x: float(x["priceChangePercent"]),
-                            reverse=True
+                            usdt_pairs, key=lambda x: float(x["priceChangePercent"]), reverse=True
                         )
 
                         gainers = [
@@ -97,7 +96,7 @@ class ExchangeAPI:
                                 "symbol": t["symbol"],
                                 "price": float(t["lastPrice"]),
                                 "change_percent": float(t["priceChangePercent"]),
-                                "volume": float(t["volume"])
+                                "volume": float(t["volume"]),
                             }
                             for t in sorted_tickers[:limit]
                         ]
@@ -107,7 +106,7 @@ class ExchangeAPI:
                                 "symbol": t["symbol"],
                                 "price": float(t["lastPrice"]),
                                 "change_percent": float(t["priceChangePercent"]),
-                                "volume": float(t["volume"])
+                                "volume": float(t["volume"]),
                             }
                             for t in sorted_tickers[-limit:]
                         ]
@@ -115,7 +114,7 @@ class ExchangeAPI:
                         return {
                             "gainers": gainers,
                             "losers": losers,
-                            "timestamp": datetime.now(tz=timezone.utc)
+                            "timestamp": datetime.now(tz=timezone.utc),
                         }
                     logger.error(f"Failed to fetch all tickers: {response.status}")
                     return {"gainers": [], "losers": []}
@@ -124,10 +123,7 @@ class ExchangeAPI:
             return {"gainers": [], "losers": []}
 
     async def get_klines(
-        self,
-        symbol: str = "BTCUSDT",
-        interval: str = "1h",
-        limit: int = 100
+        self, symbol: str = "BTCUSDT", interval: str = "1h", limit: int = 100
     ) -> list[dict]:
         """
         Get candlestick/kline data for technical analysis.
@@ -143,11 +139,7 @@ class ExchangeAPI:
         try:
             async with aiohttp.ClientSession() as session:
                 url = f"{self.base_url}/klines"
-                params = {
-                    "symbol": symbol,
-                    "interval": interval,
-                    "limit": limit
-                }
+                params = {"symbol": symbol, "interval": interval, "limit": limit}
 
                 async with session.get(url, params=params) as response:
                     if response.status == 200:
@@ -159,7 +151,7 @@ class ExchangeAPI:
                                 "high": float(k[2]),
                                 "low": float(k[3]),
                                 "close": float(k[4]),
-                                "volume": float(k[5])
+                                "volume": float(k[5]),
                             }
                             for k in klines
                         ]

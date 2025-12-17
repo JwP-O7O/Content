@@ -16,10 +16,7 @@ from src.database.models import Base
 
 # Create engine
 engine = create_engine(
-    settings.database_url,
-    pool_pre_ping=True,
-    pool_recycle=3600,
-    echo=settings.log_level == "DEBUG"
+    settings.database_url, pool_pre_ping=True, pool_recycle=3600, echo=settings.log_level == "DEBUG"
 )
 
 # Create session factory

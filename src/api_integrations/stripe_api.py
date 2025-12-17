@@ -30,10 +30,7 @@ class StripeAPI:
             logger.warning("Stripe API key not configured")
 
     def create_customer(
-        self,
-        email: str,
-        name: Optional[str] = None,
-        metadata: Optional[dict] = None
+        self, email: str, name: Optional[str] = None, metadata: Optional[dict] = None
     ) -> Optional[dict]:
         """
         Create a new Stripe customer.
@@ -47,11 +44,7 @@ class StripeAPI:
             Customer object or None
         """
         try:
-            customer = stripe.Customer.create(
-                email=email,
-                name=name,
-                metadata=metadata or {}
-            )
+            customer = stripe.Customer.create(email=email, name=name, metadata=metadata or {})
 
             logger.info(f"Stripe customer created: {customer.id}")
 
@@ -59,7 +52,7 @@ class StripeAPI:
                 "id": customer.id,
                 "email": customer.email,
                 "name": customer.name,
-                "created": customer.created
+                "created": customer.created,
             }
 
         except Exception as e:
@@ -67,11 +60,7 @@ class StripeAPI:
             return None
 
     def create_subscription(
-        self,
-        customer_id: str,
-        price_id: str,
-        trial_days: int = 0,
-        metadata: Optional[dict] = None
+        self, customer_id: str, price_id: str, trial_days: int = 0, metadata: Optional[dict] = None
     ) -> Optional[dict]:
         """
         Create a subscription for a customer.
@@ -89,7 +78,7 @@ class StripeAPI:
             subscription_data = {
                 "customer": customer_id,
                 "items": [{"price": price_id}],
-                "metadata": metadata or {}
+                "metadata": metadata or {},
             }
 
             if trial_days > 0:
@@ -104,13 +93,14 @@ class StripeAPI:
                 "customer": subscription.customer,
                 "status": subscription.status,
                 "current_period_start": datetime.fromtimestamp(
-                    subscription.current_period_start
-                , tz=timezone.utc),
+                    subscription.current_period_start, tz=timezone.utc
+                ),
                 "current_period_end": datetime.fromtimestamp(
-                    subscription.current_period_end
-                , tz=timezone.utc),
+                    subscription.current_period_end, tz=timezone.utc
+                ),
                 "trial_end": datetime.fromtimestamp(subscription.trial_end, tz=timezone.utc)
-                if subscription.trial_end else None
+                if subscription.trial_end
+                else None,
             }
 
         except Exception as e:
@@ -118,9 +108,7 @@ class StripeAPI:
             return None
 
     def cancel_subscription(
-        self,
-        subscription_id: str,
-        at_period_end: bool = True
+        self, subscription_id: str, at_period_end: bool = True
     ) -> Optional[dict]:
         """
         Cancel a subscription.
@@ -135,8 +123,7 @@ class StripeAPI:
         try:
             if at_period_end:
                 subscription = stripe.Subscription.modify(
-                    subscription_id,
-                    cancel_at_period_end=True
+                    subscription_id, cancel_at_period_end=True
                 )
             else:
                 subscription = stripe.Subscription.delete(subscription_id)
@@ -148,7 +135,8 @@ class StripeAPI:
                 "status": subscription.status,
                 "cancel_at_period_end": subscription.cancel_at_period_end,
                 "cancelled_at": datetime.fromtimestamp(subscription.cancelled_at, tz=timezone.utc)
-                if subscription.cancelled_at else None
+                if subscription.cancelled_at
+                else None,
             }
 
         except Exception as e:
@@ -156,10 +144,7 @@ class StripeAPI:
             return None
 
     def create_payment_link(
-        self,
-        price_id: str,
-        metadata: Optional[dict] = None,
-        discount_code: Optional[str] = None
+        self, price_id: str, metadata: Optional[dict] = None, discount_code: Optional[str] = None
     ) -> Optional[str]:
         """
         Create a payment link for a product.
@@ -175,7 +160,7 @@ class StripeAPI:
         try:
             link_data = {
                 "line_items": [{"price": price_id, "quantity": 1}],
-                "metadata": metadata or {}
+                "metadata": metadata or {},
             }
 
             if discount_code:
@@ -196,7 +181,7 @@ class StripeAPI:
         percent_off: int,
         duration: str = "once",
         duration_in_months: Optional[int] = None,
-        max_redemptions: Optional[int] = None
+        max_redemptions: Optional[int] = None,
     ) -> Optional[dict]:
         """
         Create a discount/promo code.
@@ -211,10 +196,7 @@ class StripeAPI:
             Coupon object or None
         """
         try:
-            coupon_data = {
-                "percent_off": percent_off,
-                "duration": duration
-            }
+            coupon_data = {"percent_off": percent_off, "duration": duration}
 
             if duration == "repeating" and duration_in_months:
                 coupon_data["duration_in_months"] = duration_in_months
@@ -230,7 +212,7 @@ class StripeAPI:
                 "id": coupon.id,
                 "percent_off": coupon.percent_off,
                 "duration": coupon.duration,
-                "valid": coupon.valid
+                "valid": coupon.valid,
             }
 
         except Exception as e:
@@ -255,12 +237,12 @@ class StripeAPI:
                 "customer": subscription.customer,
                 "status": subscription.status,
                 "current_period_start": datetime.fromtimestamp(
-                    subscription.current_period_start
-                , tz=timezone.utc),
+                    subscription.current_period_start, tz=timezone.utc
+                ),
                 "current_period_end": datetime.fromtimestamp(
-                    subscription.current_period_end
-                , tz=timezone.utc),
-                "cancel_at_period_end": subscription.cancel_at_period_end
+                    subscription.current_period_end, tz=timezone.utc
+                ),
+                "cancel_at_period_end": subscription.cancel_at_period_end,
             }
 
         except Exception as e:
@@ -268,10 +250,7 @@ class StripeAPI:
             return None
 
     def webhook_construct_event(
-        self,
-        payload: bytes,
-        sig_header: str,
-        webhook_secret: str
+        self, payload: bytes, sig_header: str, webhook_secret: str
     ) -> Optional[dict]:
         """
         Construct and verify a webhook event.
@@ -285,10 +264,7 @@ class StripeAPI:
             Event object or None
         """
         try:
-            return stripe.Webhook.construct_event(
-                payload, sig_header, webhook_secret
-            )
-
+            return stripe.Webhook.construct_event(payload, sig_header, webhook_secret)
 
         except Exception as e:
             logger.error(f"Webhook error: {e}")

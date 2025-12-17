@@ -23,9 +23,9 @@ class SystemVerifier:
         Returns:
             Dictionary with verification results
         """
-        logger.info("="*60)
+        logger.info("=" * 60)
         logger.info("Content Creator - System Verification")
-        logger.info("="*60)
+        logger.info("=" * 60)
 
         # Phase 1: Basic Configuration
         logger.info("\n[PHASE 1] Checking basic configuration...")
@@ -53,7 +53,7 @@ class SystemVerifier:
             "success": len(self.errors) == 0,
             "errors": self.errors,
             "warnings": self.warnings,
-            "checks_passed": len(self.successes)
+            "checks_passed": len(self.successes),
         }
 
     def _check_python_version(self):
@@ -62,7 +62,9 @@ class SystemVerifier:
         if version.major >= 3 and version.minor >= 9:
             self._success(f"Python version: {version.major}.{version.minor}.{version.micro}")
         else:
-            self._error(f"Python 3.9+ required, found {version.major}.{version.minor}.{version.micro}")
+            self._error(
+                f"Python 3.9+ required, found {version.major}.{version.minor}.{version.micro}"
+            )
 
     def _check_imports(self):
         """Check if all required packages are installed."""
@@ -231,12 +233,22 @@ class SystemVerifier:
 
             # Check all agents are initialized
             required_agents = [
-                "market_scanner", "analysis_agent", "content_strategist",
-                "content_creator", "publisher", "engagement_agent",
-                "image_generator", "analytics_agent", "conversion_agent",
-                "onboarding_agent", "exclusive_content_agent",
-                "community_moderator", "strategy_tuning", "ab_testing",
-                "performance_analytics", "feedback_loop"
+                "market_scanner",
+                "analysis_agent",
+                "content_strategist",
+                "content_creator",
+                "publisher",
+                "engagement_agent",
+                "image_generator",
+                "analytics_agent",
+                "conversion_agent",
+                "onboarding_agent",
+                "exclusive_content_agent",
+                "community_moderator",
+                "strategy_tuning",
+                "ab_testing",
+                "performance_analytics",
+                "feedback_loop",
             ]
 
             for agent_name in required_agents:
@@ -265,9 +277,9 @@ class SystemVerifier:
 
     def _print_summary(self):
         """Print verification summary."""
-        logger.info("\n" + "="*60)
+        logger.info("\n" + "=" * 60)
         logger.info("VERIFICATION SUMMARY")
-        logger.info("="*60)
+        logger.info("=" * 60)
 
         logger.info(f"\n✓ Passed: {len(self.successes)}")
         logger.info(f"⚠ Warnings: {len(self.warnings)}")
@@ -283,7 +295,7 @@ class SystemVerifier:
             for warning in self.warnings:
                 logger.warning(f"  - {warning}")
 
-        logger.info("\n" + "="*60)
+        logger.info("\n" + "=" * 60)
 
         if not self.errors:
             logger.success("✓ System verification PASSED! Ready to run.")

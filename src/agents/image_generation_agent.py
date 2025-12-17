@@ -40,11 +40,7 @@ class ImageGenerationAgent(BaseAgent):
         """
         self.log_info("Starting image generation...")
 
-        results = {
-            "images_generated": 0,
-            "charts_created": 0,
-            "errors": []
-        }
+        results = {"images_generated": 0, "charts_created": 0, "errors": []}
 
         try:
             # Get insights that would benefit from images
@@ -81,11 +77,12 @@ class ImageGenerationAgent(BaseAgent):
         """Get insights that would benefit from images."""
         with get_db() as db:
             # Get recent high-confidence insights that don't have images yet
-            return db.query(Insight).filter(
-                Insight.confidence >= 0.75,
-                Insight.is_published.is_(False)
-            ).limit(5).all()
-
+            return (
+                db.query(Insight)
+                .filter(Insight.confidence >= 0.75, Insight.is_published.is_(False))
+                .limit(5)
+                .all()
+            )
 
     async def _generate_image_for_insight(self, insight: Insight) -> Optional[str]:
         """
@@ -129,45 +126,43 @@ class ImageGenerationAgent(BaseAgent):
                 "type": "line",
                 "data": {
                     "labels": ["1h ago", "45m", "30m", "15m", "Now"],
-                    "datasets": [{
-                        "label": f"{asset} Price",
-                        "data": [100, 102, 98, 105, 110],  # Sample data
-                        "borderColor": "rgb(75, 192, 192)",
-                        "backgroundColor": "rgba(75, 192, 192, 0.2)",
-                        "tension": 0.4
-                    }]
+                    "datasets": [
+                        {
+                            "label": f"{asset} Price",
+                            "data": [100, 102, 98, 105, 110],  # Sample data
+                            "borderColor": "rgb(75, 192, 192)",
+                            "backgroundColor": "rgba(75, 192, 192, 0.2)",
+                            "tension": 0.4,
+                        }
+                    ],
                 },
                 "options": {
-                    "title": {
-                        "display": True,
-                        "text": f"{asset} - {insight.type.value.title()}"
-                    },
+                    "title": {"display": True, "text": f"{asset} - {insight.type.value.title()}"},
                     "scales": {
-                        "yAxes": [{
-                            "ticks": {
-                                "callback": "function(value) { return '$' + value; }"
-                            }
-                        }]
+                        "yAxes": [
+                            {"ticks": {"callback": "function(value) { return '$' + value; }"}}
+                        ]
                     },
                     "annotation": {
-                        "annotations": [{
-                            "type": "line",
-                            "mode": "vertical",
-                            "scaleID": "x-axis-0",
-                            "value": "Now",
-                            "borderColor": "red",
-                            "label": {
-                                "content": f"Confidence: {insight.confidence:.0%}",
-                                "enabled": True
+                        "annotations": [
+                            {
+                                "type": "line",
+                                "mode": "vertical",
+                                "scaleID": "x-axis-0",
+                                "value": "Now",
+                                "borderColor": "red",
+                                "label": {
+                                    "content": f"Confidence: {insight.confidence:.0%}",
+                                    "enabled": True,
+                                },
                             }
-                        }]
-                    }
-                }
+                        ]
+                    },
+                },
             }
 
             # Generate chart URL
             return await self._create_chart(chart_config)
-
 
         except Exception as e:
             self.log_error(f"Error generating price chart: {e}")
@@ -193,38 +188,30 @@ class ImageGenerationAgent(BaseAgent):
             # In practice, you might want to download and save locally
             # For now, return the URL
 
-
         except Exception as e:
             self.log_error(f"Error creating chart: {e}")
             return None
 
-    async def _generate_sentiment_visualization(
-        self,
-        insight: Insight
-    ) -> Optional[str]:
+    async def _generate_sentiment_visualization(self, insight: Insight) -> Optional[str]:
         """Generate a sentiment visualization."""
         try:
             # Create a simple gauge chart for sentiment
             chart_config = {
                 "type": "radialGauge",
                 "data": {
-                    "datasets": [{
-                        "data": [75],  # Sentiment score
-                        "backgroundColor": "green"
-                    }]
+                    "datasets": [
+                        {
+                            "data": [75],  # Sentiment score
+                            "backgroundColor": "green",
+                        }
+                    ]
                 },
                 "options": {
-                    "title": {
-                        "display": True,
-                        "text": f"{insight.asset} Sentiment Shift"
-                    },
+                    "title": {"display": True, "text": f"{insight.asset} Sentiment Shift"},
                     "trackColor": "lightgray",
                     "centerPercentage": 80,
-                    "centerArea": {
-                        "text": "75%",
-                        "fontSize": 40
-                    }
-                }
+                    "centerArea": {"text": "75%", "fontSize": 40},
+                },
             }
 
             return await self._create_chart(chart_config)
@@ -241,18 +228,15 @@ class ImageGenerationAgent(BaseAgent):
                 "type": "bar",
                 "data": {
                     "labels": ["Day 1", "Day 2", "Day 3", "Today"],
-                    "datasets": [{
-                        "label": "News Articles",
-                        "data": [2, 1, 3, 5],
-                        "backgroundColor": "rgba(54, 162, 235, 0.8)"
-                    }]
+                    "datasets": [
+                        {
+                            "label": "News Articles",
+                            "data": [2, 1, 3, 5],
+                            "backgroundColor": "rgba(54, 162, 235, 0.8)",
+                        }
+                    ],
                 },
-                "options": {
-                    "title": {
-                        "display": True,
-                        "text": f"{insight.asset} News Impact"
-                    }
-                }
+                "options": {"title": {"display": True, "text": f"{insight.asset} News Impact"}},
             }
 
             return await self._create_chart(chart_config)
@@ -261,10 +245,7 @@ class ImageGenerationAgent(BaseAgent):
             self.log_error(f"Error generating news infographic: {e}")
             return None
 
-    async def _generate_generic_crypto_image(
-        self,
-        insight: Insight
-    ) -> Optional[str]:
+    async def _generate_generic_crypto_image(self, insight: Insight) -> Optional[str]:
         """Generate a generic crypto-themed image."""
         # For now, return a placeholder
         # In practice, you could use DALL-E, Stable Diffusion, etc.
@@ -290,10 +271,7 @@ class ImageGenerationAgent(BaseAgent):
                 self.log_info(f"Saved image reference for insight {insight_id}")
 
     async def create_custom_chart(
-        self,
-        asset: str,
-        chart_type: str = "line",
-        time_period: str = "24h"
+        self, asset: str, chart_type: str = "line", time_period: str = "24h"
     ) -> Optional[str]:
         """
         Create a custom chart for a specific asset.
@@ -315,18 +293,15 @@ class ImageGenerationAgent(BaseAgent):
             "type": chart_type,
             "data": {
                 "labels": self._get_time_labels(time_period),
-                "datasets": [{
-                    "label": f"{asset} Price",
-                    "data": self._get_sample_data(time_period),
-                    "borderColor": "rgb(75, 192, 192)"
-                }]
+                "datasets": [
+                    {
+                        "label": f"{asset} Price",
+                        "data": self._get_sample_data(time_period),
+                        "borderColor": "rgb(75, 192, 192)",
+                    }
+                ],
             },
-            "options": {
-                "title": {
-                    "display": True,
-                    "text": f"{asset} - {time_period}"
-                }
-            }
+            "options": {"title": {"display": True, "text": f"{asset} - {time_period}"}},
         }
 
         return await self._create_chart(chart_config)
