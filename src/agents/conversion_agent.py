@@ -10,6 +10,8 @@ from src.api_integrations.stripe_api import StripeAPI
 from src.api_integrations.twitter_api import TwitterAPI
 from src.database.connection import get_db
 from src.database.models import CommunityUser, ConversionAttempt, UserInteraction, UserTier
+from src.utils.interaction_manager import InteractionManager
+from config.config import settings
 
 
 class ConversionAgent(BaseAgent):
@@ -17,7 +19,7 @@ class ConversionAgent(BaseAgent):
     The Conversion Agent identifies and converts highly engaged users.
 
     Responsibilities:
-    - Calculate engagement scores for all users
+    - Apply time-decay to engagement scores (maintenance)
     - Identify highly engaged free users
     - Generate personalized DMs with discount offers
     - Track conversion attempts and outcomes
@@ -75,8 +77,8 @@ class ConversionAgent(BaseAgent):
         }
 
         try:
-            # Update engagement scores for all users
-            await self._update_engagement_scores()
+            # Apply decay to engagement scores (keeps data fresh)
+            await self._decay_engagement_scores()
 
             # Identify conversion candidates
             candidates = await self._identify_conversion_candidates()
@@ -121,9 +123,9 @@ class ConversionAgent(BaseAgent):
 
         return results
 
-    async def _update_engagement_scores(self):
-        """Update engagement scores for all users based on their interactions."""
-        self.log_info("Updating engagement scores...")
+    async def _decay_engagement_scores(self):
+        """Apply decay to engagement scores to prioritize recent activity."""
+        self.log_info("Applying engagement score decay...")
 
         with get_db() as db:
             users = db.query(CommunityUser).all()
@@ -174,6 +176,11 @@ class ConversionAgent(BaseAgent):
         score = min(100, (total_value / 50) * 100)
 
         return round(score, 2)
+        try:
+            with get_db() as db:
+                InteractionManager.decay_scores(db, decay_factor=0.95)
+        except Exception as e:
+            self.log_error(f"Error decaying scores: {e}")
 
     async def _identify_conversion_candidates(self) -> list[CommunityUser]:
         """

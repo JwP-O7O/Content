@@ -3,11 +3,15 @@
 import json
 
 from anthropic import Anthropic
+from typing import Dict, List
 
 from config.config import settings
 from src.agents.base_agent import BaseAgent
 from src.database.connection import get_db
 from src.database.models import ContentFormat, ContentPlan
+from src.database.models import ContentPlan, ContentFormat
+from src.utils.llm_client import llm_client
+from config.config import settings
 
 
 class ContentCreationAgent(BaseAgent):
@@ -25,8 +29,8 @@ class ContentCreationAgent(BaseAgent):
         """Initialize the ContentCreationAgent."""
         super().__init__("ContentCreationAgent")
 
-        # Initialize LLM client
-        self.llm_client = Anthropic(api_key=settings.anthropic_api_key)
+        # Use global LLM client (supports Gemini & Claude with failover)
+        self.llm_client = llm_client
 
         # Content personality from config
         self.personality = settings.content_personality
@@ -51,8 +55,14 @@ class ContentCreationAgent(BaseAgent):
         }
 
     async def execute(self) -> dict:
+    async def execute(self, *args, **kwargs) -> Dict:
         """
         Execute content creation for pending content plans.
+
+        Args:
+            *args: Variable length argument list.
+            **kwargs: Arbitrary keyword arguments.
+                     - content_plan (list, optional): List of content items to process immediately.
 
         Returns:
             Dictionary with creation results
@@ -67,11 +77,81 @@ class ContentCreationAgent(BaseAgent):
             "errors": [],
         }
 
+        # Check for direct input via kwargs (e.g., from orchestrator or helper script)
+        direct_content_plans = kwargs.get('content_plan') or kwargs.get('content_plans')
+
+        if direct_content_plans:
+            # Handle direct execution with provided plans (bypassing DB for immediate response)
+            self.log_info(f"Processing {len(direct_content_plans)} provided content plans directly")
+
+            for item in direct_content_plans:
+                try:
+                    # Map dictionary item to a mock plan/insight structure for generation
+                    # This is a bit of a hack to reuse existing generation methods
+
+                    # Determine format
+                    fmt = item.get('format', 'tweet').lower()
+                    if 'thread' in fmt:
+                        item_format = ContentFormat.THREAD
+                    elif 'telegram' in fmt:
+                        item_format = ContentFormat.TELEGRAM_MESSAGE
+                    elif 'blog' in fmt:
+                        item_format = ContentFormat.BLOG_POST
+                    else:
+                        item_format = ContentFormat.SINGLE_TWEET
+
+                    # Create a MockInsight-like object
+                    class MockInsight:
+                        def __init__(self, data):
+                            self.asset = data.get('keywords', ['CRYPTO'])[0]
+                            self.type = type('obj', (object,), {'value': data.get('main_topic', 'General Update')})
+                            self.confidence = 0.9
+                            self.details = data
+
+                    class MockPlan:
+                        def __init__(self, item, insight):
+                            self.id = item.get('item_id', 'mock_id')
+                            self.format = item_format
+                            self.insight = insight
+
+                    mock_insight = MockInsight(item)
+                    mock_plan = MockPlan(item, mock_insight)
+
+                    # Generate content
+                    content = await self._generate_content(mock_plan)
+
+                    if content:
+                        results["content_created"] += 1
+                        results["generated_content"] = results.get("generated_content", [])
+                        results["generated_content"].append(content)
+
+                        # Track by type
+                        if item_format == ContentFormat.SINGLE_TWEET:
+                            results["tweets"] += 1
+                        elif item_format == ContentFormat.THREAD:
+                            results["threads"] += 1
+                        elif item_format == ContentFormat.TELEGRAM_MESSAGE:
+                            results["telegram_messages"] += 1
+
+                except Exception as e:
+                    error_msg = f"Error creating content for item: {e}"
+                    self.log_error(error_msg)
+                    results["errors"].append(error_msg)
+
+            return results
+
         try:
-            # Get pending content plans
-            pending_plans = await self._get_pending_plans()
+            # Query and process plans within same session
+            from sqlalchemy.orm import joinedload
 
             with get_db() as db:
+                # Query plans with insights eagerly loaded in same session
+                pending_plans = db.query(ContentPlan).options(
+                    joinedload(ContentPlan.insight)
+                ).filter(
+                    ContentPlan.status == "pending"
+                ).limit(10).all()
+
                 for plan in pending_plans:
                     try:
                         # Generate content based on format
@@ -121,10 +201,23 @@ class ContentCreationAgent(BaseAgent):
         Returns:
             List of pending content plans
         """
+        from sqlalchemy.orm import joinedload
+
         with get_db() as db:
             return (
                 db.query(ContentPlan).filter(ContentPlan.status == "pending").limit(10).all()
             )  # Process 10 at a time
+            plans = db.query(ContentPlan).options(
+                joinedload(ContentPlan.insight)
+            ).filter(
+                ContentPlan.status == "pending"
+            ).limit(10).all()  # Process 10 at a time
+
+            # Expunge objects from session so they can be used outside
+            for plan in plans:
+                db.expunge(plan)
+
+            return plans
 
     async def _generate_content(self, plan: ContentPlan) -> dict:
         """
@@ -178,9 +271,13 @@ Tweet:"""
                 model="claude-3-5-sonnet-20241022",
                 max_tokens=150,
                 messages=[{"role": "user", "content": prompt}],
+            # Use Gemini by default (Anthropic has no credits)
+            tweet_text = await self.llm_client.generate(
+                prompt=prompt,
+                model="gemini",
+                max_tokens=150
             )
-
-            tweet_text = message.content[0].text.strip()
+            tweet_text = tweet_text.strip()
 
             # Ensure it fits in 280 characters
             if len(tweet_text) > 280:
@@ -230,9 +327,13 @@ Thread:"""
                 model="claude-3-5-sonnet-20241022",
                 max_tokens=800,
                 messages=[{"role": "user", "content": prompt}],
+            # Use Gemini by default (Anthropic has no credits)
+            response_text = await self.llm_client.generate(
+                prompt=prompt,
+                model="gemini",
+                max_tokens=800
             )
-
-            response_text = message.content[0].text.strip()
+            response_text = response_text.strip()
 
             # Try to parse as JSON
             try:
@@ -290,9 +391,13 @@ Message:"""
                 model="claude-3-5-sonnet-20241022",
                 max_tokens=500,
                 messages=[{"role": "user", "content": prompt}],
+            # Use Gemini by default (Anthropic has no credits)
+            telegram_text = await self.llm_client.generate(
+                prompt=prompt,
+                model="gemini",
+                max_tokens=500
             )
-
-            telegram_text = message.content[0].text.strip()
+            telegram_text = telegram_text.strip()
 
             return {"text": telegram_text, "format": "telegram", "content_plan_id": plan.id}
 
@@ -331,9 +436,13 @@ Blog Post:"""
                 model="claude-3-5-sonnet-20241022",
                 max_tokens=1500,
                 messages=[{"role": "user", "content": prompt}],
+            # Use Gemini by default (Anthropic has no credits)
+            blog_text = await self.llm_client.generate(
+                prompt=prompt,
+                model="gemini",
+                max_tokens=1500
             )
-
-            blog_text = message.content[0].text.strip()
+            blog_text = blog_text.strip()
 
             # Extract title (first line starting with #)
             lines = blog_text.split("\n")

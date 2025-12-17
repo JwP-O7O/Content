@@ -67,31 +67,42 @@ class PublishingAgent(BaseAgent):
         }
 
         try:
-            # Get ready content plans
-            ready_plans = await self._get_ready_plans()
+            # Query and process plans within same session
+            with get_db() as db:
+                # Get plans that are ready and scheduled for now or earlier
+                # Use datetime.now() not utcnow() to match database timezone
+                now = datetime.now()
 
-            for plan in ready_plans:
-                try:
-                    if self.human_in_the_loop:
-                        # Mark as awaiting approval
-                        self._mark_awaiting_approval(plan)
-                        results["awaiting_approval"] += 1
-                    else:
-                        # Auto-publish
-                        success = await self._publish_plan(plan)
+                ready_plans = db.query(ContentPlan).filter(
+                    ContentPlan.status == "ready",
+                    ContentPlan.scheduled_for <= now
+                ).limit(10).all()
 
-                        if success:
-                            results["content_published"] += 1
+                for plan in ready_plans:
+                    try:
+                        if self.human_in_the_loop:
+                            # Mark as awaiting approval
+                            plan.status = "awaiting_approval"
+                            results["awaiting_approval"] += 1
+                        else:
+                            # Auto-publish
+                            success = await self._publish_plan(plan)
 
-                            if plan.platform == "twitter":
-                                results["twitter_posts"] += 1
-                            elif "telegram" in plan.platform:
-                                results["telegram_posts"] += 1
+                            if success:
+                                results["content_published"] += 1
 
-                except Exception as e:
-                    error_msg = f"Error publishing plan {plan.id}: {e}"
-                    self.log_error(error_msg)
-                    results["errors"].append(error_msg)
+                                if plan.platform == "twitter":
+                                    results["twitter_posts"] += 1
+                                elif "telegram" in plan.platform:
+                                    results["telegram_posts"] += 1
+
+                    except Exception as e:
+                        error_msg = f"Error publishing plan {plan.id}: {e}"
+                        self.log_error(error_msg)
+                        results["errors"].append(error_msg)
+
+                # Commit all changes
+                db.commit()
 
             if self.human_in_the_loop and results["awaiting_approval"] > 0:
                 self.log_info(
