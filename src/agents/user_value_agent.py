@@ -1,10 +1,13 @@
 import json
-from src.agents.base_agent import BaseAgent
-from src.utils.llm_client import llm_client
+
 from loguru import logger
 
+from src.agents.base_agent import BaseAgent
+from src.utils.llm_client import llm_client
+
+
 class UserValueAgent(BaseAgent):
-    SYSTEM_PROMPT = '''
+    SYSTEM_PROMPT = """
     As an advanced AI agent, you are formally designated as the 'Monetization Lead Identification & Onboarding Facilitator' within the GEMINI Content Creator project. Your operational domain is strictly within Phase 3: Monetization, focusing on the strategic growth and conversion of the user base.
 
     **Objective:**
@@ -83,9 +86,9 @@ class UserValueAgent(BaseAgent):
             "string (e.g., 'Limited demographic data prevented more granular segmentation for certain user groups.')"
         ]
     }
-    
-    '''
-    
+
+    """
+
     def __init__(self):
         super().__init__("UserValueAgent")
         self.llm = llm_client
@@ -98,46 +101,54 @@ class UserValueAgent(BaseAgent):
 
         Args:
             *args: Positional arguments (not typically used by this agent).
-            **kwargs: Keyword arguments, expected to contain 'user_data' 
+            **kwargs: Keyword arguments, expected to contain 'user_data'
                       with information about users for analysis.
 
         Returns:
-            dict: A dictionary containing identified leads, analysis summary, 
+            dict: A dictionary containing identified leads, analysis summary,
                   assumptions, and data limitations, formatted as per SYSTEM_PROMPT.
                   Includes error information if parsing fails or an exception occurs.
         """
         logger.info(f"{self.agent_name} received execution request.")
-        
+
         # Extract user data from kwargs. This data is expected to be a dictionary
         # or list of dictionaries containing various user engagement metrics.
-        user_input_data = kwargs.get('user_data', {})
-        
+        user_input_data = kwargs.get("user_data", {})
+
         if not user_input_data:
-            logger.warning(f"{self.agent_name}: No 'user_data' provided in kwargs. Cannot perform analysis for monetization leads.")
+            logger.warning(
+                f"{self.agent_name}: No 'user_data' provided in kwargs. Cannot perform analysis for monetization leads."
+            )
             # Return a default structure indicating no leads found due to lack of input data
             return {
                 "identified_leads": [],
                 "analysis_summary": "No 'user_data' was provided, therefore no monetization lead analysis could be performed.",
                 "assumptions_made": ["No specific user data was available for analysis."],
-                "data_limitations": ["Missing 'user_data' in the input arguments, preventing any lead identification or strategy generation."]
+                "data_limitations": [
+                    "Missing 'user_data' in the input arguments, preventing any lead identification or strategy generation."
+                ],
             }
 
         # Construct the user-specific message to append to the SYSTEM_PROMPT.
         # This message provides the concrete data the LLM needs to analyze.
         user_message_for_llm = f"Analyze the following user data to identify potential monetization leads, estimate CLV, segment users, and propose tailored automated onboarding strategies. Adhere strictly to the defined output JSON schema.\n\nUser Data for Analysis:\n{json.dumps(user_input_data, indent=2)}"
 
-        logger.debug(f"{self.agent_name} preparing LLM request for user data: {json.dumps(user_input_data)[:200]}...") # Log first 200 chars for brevity
-        
+        logger.debug(
+            f"{self.agent_name} preparing LLM request for user data: {json.dumps(user_input_data)[:200]}..."
+        )  # Log first 200 chars for brevity
+
         try:
             # Combine the constant SYSTEM_PROMPT with the dynamic user data for the LLM call.
             full_prompt_payload = self.SYSTEM_PROMPT + "\n\n" + user_message_for_llm
-            
-            # Call the LLM client to generate the response. 
+
+            # Call the LLM client to generate the response.
             # Assumes llm_client.generate is an async method that takes a string prompt
             # and returns a string response (expected to be JSON).
             response_content = await self.llm.generate(full_prompt_payload)
-            
-            logger.debug(f"{self.agent_name} received raw response from LLM (first 200 chars): {response_content[:200]}...")
+
+            logger.debug(
+                f"{self.agent_name} received raw response from LLM (first 200 chars): {response_content[:200]}..."
+            )
 
             # Attempt to parse the LLM's string response into a JSON object.
             parsed_response = json.loads(response_content)
@@ -149,11 +160,11 @@ class UserValueAgent(BaseAgent):
             return {
                 "error": "Failed to parse LLM response as JSON. The LLM might not have adhered to the output schema.",
                 "raw_llm_response": response_content,
-                "exception_details": str(e)
+                "exception_details": str(e),
             }
         except Exception as e:
             logger.error(f"{self.agent_name}: An unexpected error occurred during execution: {e}")
             return {
-                "error": f"An unexpected error occurred during UserValueAgent execution: {str(e)}",
-                "exception_type": type(e).__name__
+                "error": f"An unexpected error occurred during UserValueAgent execution: {e!s}",
+                "exception_type": type(e).__name__,
             }

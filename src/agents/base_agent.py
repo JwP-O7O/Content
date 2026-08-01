@@ -58,7 +58,7 @@ class BaseAgent(ABC):
                 execution_time=execution_time,
             )
 
-            logger.info(f"{self.name} completed: {action} " f"(took {execution_time:.2f}s)")
+            logger.info(f"{self.name} completed: {action} (took {execution_time:.2f}s)")
 
             return result
 
@@ -75,7 +75,7 @@ class BaseAgent(ABC):
             )
 
             logger.error(
-                f"{self.name} failed: {action} - {error_message} " f"(took {execution_time:.2f}s)"
+                f"{self.name} failed: {action} - {error_message} (took {execution_time:.2f}s)"
             )
 
             raise

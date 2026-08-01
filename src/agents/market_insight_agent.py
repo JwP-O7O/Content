@@ -1,7 +1,10 @@
 import json
+
+from loguru import logger
+
 from src.agents.base_agent import BaseAgent
 from src.utils.llm_client import llm_client
-from loguru import logger
+
 
 class MarketInsightAgent(BaseAgent):
     SYSTEM_PROMPT = """
@@ -26,10 +29,10 @@ My workflow proceeds with rigorous analytical discipline:
 
 The final output must be an articulate, granular, and data-backed assessment, presenting significant market trends, predictive shifts, quantified market sentiment, identified anomalies, and actionable insights with associated confidence levels and a summary of underlying evidence. This output must be immediately consumable and instrumental for downstream agents in the content creation and social media management pipeline.
 """
-    
+
     def __init__(self):
         super().__init__("MarketInsightAgent")
-        self.llm = llm_client # llm_client is assumed to be an instantiated LLM client
+        self.llm = llm_client  # llm_client is assumed to be an instantiated LLM client
 
     async def execute(self, *args, **kwargs):
         """
@@ -45,19 +48,23 @@ The final output must be an articulate, granular, and data-backed assessment, pr
         market_data = None
         if args and args[0] is not None:
             market_data = args[0]
-        elif 'market_data' in kwargs and kwargs['market_data'] is not None:
-            market_data = kwargs['market_data']
-        
+        elif "market_data" in kwargs and kwargs["market_data"] is not None:
+            market_data = kwargs["market_data"]
+
         if market_data is None:
             logger.error(f"{self.agent_name}: No market data provided for analysis.")
-            return {"error": "No market data provided for analysis. Please provide data via 'market_data' kwarg or as the first positional argument."}
-        
+            return {
+                "error": "No market data provided for analysis. Please provide data via 'market_data' kwarg or as the first positional argument."
+            }
+
         # Attempt to serialize market_data to a string if it's not already, for consistent LLM input.
         if not isinstance(market_data, str):
             try:
                 market_data_str = json.dumps(market_data, indent=2)
             except TypeError as e:
-                logger.error(f"{self.agent_name}: Could not serialize market data to JSON string: {e}")
+                logger.error(
+                    f"{self.agent_name}: Could not serialize market data to JSON string: {e}"
+                )
                 return {"error": f"Invalid market data format. Could not serialize to JSON: {e}"}
         else:
             market_data_str = market_data
@@ -77,18 +84,23 @@ The final output must be an articulate, granular, and data-backed assessment, pr
             "--- End Raw Market Data ---"
         )
 
-        logger.info(f"{self.agent_name}: Initiating analysis of market data. Snippet: {market_data_str[:500]}...")
-        
+        logger.info(
+            f"{self.agent_name}: Initiating analysis of market data. Snippet: {market_data_str[:500]}..."
+        )
+
         try:
             # Using a lower temperature for more deterministic, analytical output
             response = await self.llm.generate(
                 system_prompt=self.SYSTEM_PROMPT,
                 user_message=user_message,
-                temperature=0.2, # Aim for factual, structured, and less creative responses.
+                temperature=0.2,  # Aim for factual, structured, and less creative responses.
                 # max_tokens=2000 # Example: Adjust token limit based on expected output verbosity
             )
             logger.success(f"{self.agent_name}: Successfully generated market insights.")
             return response
         except Exception as e:
-            logger.error(f"{self.agent_name}: Error during execution of MarketInsightAgent: {e}", exc_info=True)
+            logger.error(
+                f"{self.agent_name}: Error during execution of MarketInsightAgent: {e}",
+                exc_info=True,
+            )
             return {"error": f"Failed to generate market insights due to an internal error: {e}"}

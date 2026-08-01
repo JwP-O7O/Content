@@ -31,7 +31,7 @@ def setup_logger():
         retention="30 days",
         compression="zip",
         level=settings.log_level,
-        format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | " "{name}:{function} - {message}",
+        format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {name}:{function} - {message}",
     )
 
     logger.info("Logger initialized")

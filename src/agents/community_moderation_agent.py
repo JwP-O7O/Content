@@ -1,11 +1,14 @@
 import json
+from typing import Optional
+
+from loguru import logger
+
 from src.agents.base_agent import BaseAgent
 from src.utils.llm_client import llm_client
-from loguru import logger
-import asyncio # Although not explicitly used in this simplified LLM call, useful for async context
+
 
 class CommunityModerationAgent(BaseAgent):
-    SYSTEM_PROMPT = '''
+    SYSTEM_PROMPT = """
 You are the "Community Moderation Agent," a highly specialized, autonomous AI entity operating within the GEMINI Content Creator Project. Your primary role is to serve as a vigilant guardian and enforcer of community safety and content guidelines across all designated communication channels.
 
 Objective:
@@ -40,14 +43,20 @@ Constraints:
 -   Operate with speed and efficiency to enable near real-time moderation where possible, mitigating the spread of harmful content.
 -   Adhere strictly to predefined community guidelines and escalation policies.
 -   When faced with genuine uncertainty regarding a violation, default to flagging for human review rather than executing an erroneous automated action.
-'''
+"""
 
     def __init__(self):
         super().__init__("CommunityModerationAgent")
         self.llm = llm_client
         logger.info(f"{self.name} initialized with LLM client.")
 
-    async def execute(self, content: str = None, user_id: str = None, context: dict = None, **kwargs) -> dict:
+    async def execute(
+        self,
+        content: Optional[str] = None,
+        user_id: Optional[str] = None,
+        context: Optional[dict] = None,
+        **kwargs,
+    ) -> dict:
         """
         Executes the community moderation task using the LLM, analyzing provided content
         against established guidelines using NLP, Rule-Based Systems, and Anomaly Detection frameworks.
@@ -66,15 +75,21 @@ Constraints:
                   Expected format: {"action": "[FLAG|WARN|REMOVE|BAN|IGNORE]", "confidence": [0.0-1.0], "reason": "[Detailed justification]"}
         """
         if not content or not isinstance(content, str):
-            logger.warning("No valid content string provided for moderation. Returning default 'IGNORE' action.")
-            return {"action": "IGNORE", "confidence": 1.0, "reason": "No content provided for moderation."}
+            logger.warning(
+                "No valid content string provided for moderation. Returning default 'IGNORE' action."
+            )
+            return {
+                "action": "IGNORE",
+                "confidence": 1.0,
+                "reason": "No content provided for moderation.",
+            }
 
         # Prepare the user message with all relevant context for the LLM's analysis
         user_message_payload = {
             "content_to_moderate": content,
             "user_id": user_id if user_id else "anonymous",
             "context": context if context else {},
-            "additional_info": kwargs # Include any extra kwargs for LLM to consider
+            "additional_info": kwargs,  # Include any extra kwargs for LLM to consider
         }
 
         # Construct the specific instruction for the LLM based on its defined workflow
@@ -90,10 +105,12 @@ Constraints:
             f"Third, recommend the most appropriate moderation action (FLAG, WARN, REMOVE, BAN, IGNORE). "
             f"Fourth, justify your decision with a confidence score.\n"
             f"Strictly provide your final assessment and recommended action in JSON format:\n"
-            f"`{{\"action\": \"[FLAG|WARN|REMOVE|BAN|IGNORE]\", \"confidence\": [0.0-1.0], \"reason\": \"[Detailed justification explaining the violation(s) and framework(s) used]\"}}`"
+            f'`{{"action": "[FLAG|WARN|REMOVE|BAN|IGNORE]", "confidence": [0.0-1.0], "reason": "[Detailed justification explaining the violation(s) and framework(s) used]"}}`'
         )
 
-        logger.debug(f"Sending moderation request to LLM for content (first 100 chars): '{content[:100]}...'")
+        logger.debug(
+            f"Sending moderation request to LLM for content (first 100 chars): '{content[:100]}...'"
+        )
         try:
             # The llm_client.generate method expects the full prompt concatenated
             raw_llm_response = await self.llm.generate(self.SYSTEM_PROMPT + moderation_instruction)
@@ -101,38 +118,63 @@ Constraints:
 
             # Attempt to parse the JSON response, accounting for common LLM behaviors (e.g., markdown code blocks)
             json_str = raw_llm_response.strip()
-            if json_str.startswith('json'):
+            if json_str.startswith("json"):
                 json_str = json_str[7:].strip()
-                if json_str.endswith(''):
+                if json_str.endswith(""):
                     json_str = json_str[:-3].strip()
-            
+
             moderation_result = json.loads(json_str)
 
             # Validate the structure and content of the parsed JSON response
             required_keys = ["action", "confidence", "reason"]
             if not all(k in moderation_result for k in required_keys):
-                raise ValueError(f"LLM response missing required keys: {', '.join(required_keys)}. Found: {moderation_result.keys()}")
-            
+                msg = f"LLM response missing required keys: {', '.join(required_keys)}. Found: {moderation_result.keys()}"
+                raise ValueError(msg)
+
             valid_actions = ["FLAG", "WARN", "REMOVE", "BAN", "IGNORE"]
             if moderation_result["action"] not in valid_actions:
-                raise ValueError(f"Invalid action '{moderation_result['action']}' in LLM response. Must be one of: {valid_actions}")
-            
+                msg = f"Invalid action '{moderation_result['action']}' in LLM response. Must be one of: {valid_actions}"
+                raise ValueError(msg)
+
             confidence = moderation_result["confidence"]
             if not isinstance(confidence, (int, float)) or not (0.0 <= confidence <= 1.0):
-                raise ValueError(f"Invalid confidence score '{confidence}' in LLM response. Must be a float between 0.0 and 1.0.")
+                msg = f"Invalid confidence score '{confidence}' in LLM response. Must be a float between 0.0 and 1.0."
+                raise ValueError(msg)
 
-            logger.info(f"Moderation decision for content '{content[:50]}...': Action={moderation_result['action']}, Confidence={moderation_result['confidence']:.2f}")
+            logger.info(
+                f"Moderation decision for content '{content[:50]}...': Action={moderation_result['action']}, Confidence={moderation_result['confidence']:.2f}"
+            )
             return moderation_result
 
         except json.JSONDecodeError as e:
-            logger.error(f"Failed to parse LLM response as JSON: {e}. Raw response: {raw_llm_response[:500]}...", exc_info=True)
+            logger.error(
+                f"Failed to parse LLM response as JSON: {e}. Raw response: {raw_llm_response[:500]}...",
+                exc_info=True,
+            )
             # Fallback for malformed JSON, flagging for human review
-            return {"action": "FLAG", "confidence": 0.3, "reason": f"LLM returned malformed JSON. Error: {e}. Raw response snippet: {raw_llm_response[:200]}..."}
+            return {
+                "action": "FLAG",
+                "confidence": 0.3,
+                "reason": f"LLM returned malformed JSON. Error: {e}. Raw response snippet: {raw_llm_response[:200]}...",
+            }
         except ValueError as e:
-            logger.error(f"LLM response JSON structure or content invalid: {e}. Raw response: {raw_llm_response[:500]}...", exc_info=True)
+            logger.error(
+                f"LLM response JSON structure or content invalid: {e}. Raw response: {raw_llm_response[:500]}...",
+                exc_info=True,
+            )
             # Fallback for invalid JSON structure/content, flagging for human review
-            return {"action": "FLAG", "confidence": 0.4, "reason": f"LLM response JSON validation failed: {e}. Raw response snippet: {raw_llm_response[:200]}..."}
+            return {
+                "action": "FLAG",
+                "confidence": 0.4,
+                "reason": f"LLM response JSON validation failed: {e}. Raw response snippet: {raw_llm_response[:200]}...",
+            }
         except Exception as e:
-            logger.error(f"An unexpected error occurred during LLM moderation execution: {e}", exc_info=True)
+            logger.error(
+                f"An unexpected error occurred during LLM moderation execution: {e}", exc_info=True
+            )
             # Generic fallback for any other unexpected errors
-            return {"action": "FLAG", "confidence": 0.1, "reason": f"Internal LLM client error: {e}. Review required."}
+            return {
+                "action": "FLAG",
+                "confidence": 0.1,
+                "reason": f"Internal LLM client error: {e}. Review required.",
+            }

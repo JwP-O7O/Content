@@ -1,6 +1,5 @@
 """Twitter/X API integration."""
 
-from typing import List, Dict, Optional
 from typing import Optional
 
 import tweepy
@@ -36,7 +35,8 @@ class TwitterAPI:
             bearer_token: Bearer token for API v2
         """
         if tweepy is None:
-            raise ImportError("tweepy is required for TwitterAPI but is not installed")
+            msg = "tweepy is required for TwitterAPI but is not installed"
+            raise ImportError(msg)
         # Initialize v1.1 API (for posting)
         auth = tweepy.OAuthHandler(api_key, api_secret)
         auth.set_access_token(access_token, access_token_secret)
@@ -106,7 +106,7 @@ class TwitterAPI:
                 posted_tweets.append(tweet_data)
                 previous_tweet_id = response.data["id"]
 
-                logger.info(f"Thread tweet {i+1}/{len(tweets)} posted")
+                logger.info(f"Thread tweet {i + 1}/{len(tweets)} posted")
 
             return posted_tweets
 

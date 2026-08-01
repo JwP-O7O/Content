@@ -1,10 +1,13 @@
 import json
-from src.agents.base_agent import BaseAgent
-from src.utils.llm_client import llm_client
+
 from loguru import logger
 
+from src.agents.base_agent import BaseAgent
+from src.utils.llm_client import llm_client
+
+
 class StrategyOptimizerAgent(BaseAgent):
-    SYSTEM_PROMPT = '''
+    SYSTEM_PROMPT = """
     As an Elite AI Strategy Optimizer and Adaptive Control System, your core mission is to elevate the performance and efficiency of the GEMINI Content Creator project. You operate autonomously, continuously refining operational parameters and strategic policies of subordinate agents to maximize critical Key Performance Indicators (KPIs) such as engagement, conversion rates, and overall Return on Investment (ROI).
 
     **Persona**: Lead Self-Learning Strategy Tuner and Adaptive Parameter Adjuster.
@@ -116,15 +119,17 @@ class StrategyOptimizerAgent(BaseAgent):
         ],
         "system_feedback": "All internal models and policy networks updated with latest data. Ready for next optimization cycle. Continuous monitoring of KPI deviations and environmental shifts is active."
     }
-    
+
     Your response *must* be a valid JSON object following this schema. Do not include any conversational text or markdown outside the JSON block.
-    '''
+    """
 
     def __init__(self):
         super().__init__("StrategyOptimizerAgent")
         self.llm = llm_client
 
-    async def execute(self, insights: dict, experiment_results: dict, current_agent_configs: dict, **kwargs) -> dict:
+    async def execute(
+        self, insights: dict, experiment_results: dict, current_agent_configs: dict, **kwargs
+    ) -> dict:
         """
         Executes the strategy optimization process by analyzing insights and experiment results
         to autonomously propose adjustments to agent configurations.
@@ -143,7 +148,9 @@ class StrategyOptimizerAgent(BaseAgent):
         logger.info("StrategyOptimizerAgent initiating optimization cycle.")
         logger.debug(f"Received insights: {json.dumps(insights, indent=2)}")
         logger.debug(f"Received experiment_results: {json.dumps(experiment_results, indent=2)}")
-        logger.debug(f"Received current_agent_configs: {json.dumps(current_agent_configs, indent=2)}")
+        logger.debug(
+            f"Received current_agent_configs: {json.dumps(current_agent_configs, indent=2)}"
+        )
         logger.debug(f"Received additional kwargs: {json.dumps(kwargs, indent=2)}")
 
         # Prepare the comprehensive contextual input for the LLM
@@ -151,8 +158,10 @@ class StrategyOptimizerAgent(BaseAgent):
             "insights": insights,
             "experiment_results": experiment_results,
             "current_agent_configs": current_agent_configs,
-            "optimization_goals": kwargs.get("optimization_goals", ["engagement", "conversion", "roi"]),
-            "historical_performance": kwargs.get("historical_performance", {})
+            "optimization_goals": kwargs.get(
+                "optimization_goals", ["engagement", "conversion", "roi"]
+            ),
+            "historical_performance": kwargs.get("historical_performance", {}),
             # Add more context from kwargs as needed for advanced optimization
         }
 
@@ -173,29 +182,33 @@ class StrategyOptimizerAgent(BaseAgent):
             # Generate recommendations using the LLM client
             logger.debug("Calling LLM for strategy optimization with comprehensive prompt...")
             response_content = await self.llm.generate(full_prompt)
-            logger.debug(f"LLM raw response received (truncated to 500 chars): {response_content[:500]}...")
+            logger.debug(
+                f"LLM raw response received (truncated to 500 chars): {response_content[:500]}..."
+            )
 
             # Attempt to robustly parse the JSON response. The LLM might sometimes wrap the JSON in markdown code blocks.
             parsed_response = {}
             if response_content:
                 # Remove markdown code block delimiters if present
                 if response_content.strip().startswith("json"):
-                    response_content = response_content.strip()[len("json"):].strip()
+                    response_content = response_content.strip()[len("json") :].strip()
                     if response_content.endswith(""):
-                        response_content = response_content[:-len("")].strip()
-                elif response_content.strip().startswith(""): # General code block
-                    response_content = response_content.strip()[len(""):].strip()
+                        response_content = response_content[: -len("")].strip()
+                elif response_content.strip().startswith(""):  # General code block
+                    response_content = response_content.strip()[len("") :].strip()
                     if response_content.endswith(""):
-                        response_content = response_content[:-len("")].strip()
-                
+                        response_content = response_content[: -len("")].strip()
+
                 # Try to parse the cleaned string as JSON
                 try:
                     parsed_response = json.loads(response_content)
                 except json.JSONDecodeError as e:
-                    logger.error(f"Failed to decode JSON from LLM response after stripping markdown: {e}. Attempting to extract JSON using regex/heuristic.")
+                    logger.error(
+                        f"Failed to decode JSON from LLM response after stripping markdown: {e}. Attempting to extract JSON using regex/heuristic."
+                    )
                     # Fallback: attempt to find the first and last curly braces to extract potential JSON
-                    json_start = response_content.find('{')
-                    json_end = response_content.rfind('}')
+                    json_start = response_content.find("{")
+                    json_end = response_content.rfind("}")
                     if json_start != -1 and json_end != -1 and json_end > json_start:
                         try:
                             extracted_json_str = response_content[json_start : json_end + 1]
@@ -203,32 +216,39 @@ class StrategyOptimizerAgent(BaseAgent):
                             logger.warning("Successfully extracted JSON using heuristic method.")
                         except json.JSONDecodeError:
                             logger.error("Heuristic JSON extraction also failed.")
-                            raise # Re-raise to fall into the outer catch
+                            raise  # Re-raise to fall into the outer catch
 
             if not parsed_response:
-                raise ValueError("LLM returned empty or unparseable JSON response.")
+                msg = "LLM returned empty or unparseable JSON response."
+                raise ValueError(msg)
 
             logger.info("StrategyOptimizerAgent successfully generated optimization plan.")
             return parsed_response
 
         except json.JSONDecodeError as e:
-            logger.error(f"FATAL JSON decoding error from LLM response: {e}. Raw response: '{response_content}'")
+            logger.error(
+                f"FATAL JSON decoding error from LLM response: {e}. Raw response: '{response_content}'"
+            )
             return {
                 "status": "failure",
                 "message": f"Critical JSON decoding error: {e}",
-                "raw_llm_response": response_content
+                "raw_llm_response": response_content,
             }
         except ValueError as e:
-            logger.error(f"Value error during strategy optimization: {e}. Raw response: '{response_content}'")
+            logger.error(
+                f"Value error during strategy optimization: {e}. Raw response: '{response_content}'"
+            )
             return {
                 "status": "failure",
                 "message": f"Value error: {e}",
-                "raw_llm_response": response_content
+                "raw_llm_response": response_content,
             }
         except Exception as e:
-            logger.error(f"An unexpected error occurred during strategy optimization: {e}", exc_info=True)
+            logger.error(
+                f"An unexpected error occurred during strategy optimization: {e}", exc_info=True
+            )
             return {
                 "status": "failure",
                 "message": f"Unexpected error: {e}",
-                "raw_llm_response": "Error occurred before receiving full LLM response or during initial processing."
+                "raw_llm_response": "Error occurred before receiving full LLM response or during initial processing.",
             }

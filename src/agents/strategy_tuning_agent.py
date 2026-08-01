@@ -1,19 +1,18 @@
 """StrategyTuningAgent - Automatically optimizes system strategies based on performance."""
 
 import json
-from sqlalchemy import func
-from sqlalchemy.orm import joinedload
 from datetime import datetime, timedelta, timezone
 
 from anthropic import Anthropic
+from sqlalchemy import func
 
 from config.config import settings
 from src.agents.base_agent import BaseAgent
 from src.database.connection import get_db
 from src.database.models import (
-    PublishedContent, Insight, ConversionAttempt,
-    ExclusiveContent, ContentFormat, InsightType, ContentPlan
+    ContentPlan,
     ConversionAttempt,
+    Insight,
     PublishedContent,
 )
 
@@ -113,10 +112,12 @@ class StrategyTuningAgent(BaseAgent):
 
         with get_db() as db:
             # Check if we have enough data
-            content_count = db.query(func.count(PublishedContent.id)).filter(
-                PublishedContent.published_at >= cutoff
-            ).scalar()
-            content_items = (
+            content_count = (
+                db.query(func.count(PublishedContent.id))
+                .filter(PublishedContent.published_at >= cutoff)
+                .scalar()
+            )
+            (
                 db.query(PublishedContent)
                 .join(PublishedContent.content_plan)
                 .filter(PublishedContent.published_at >= cutoff)
@@ -126,109 +127,56 @@ class StrategyTuningAgent(BaseAgent):
             if content_count < self.min_data_points:
                 return {
                     "insufficient_data": True,
-                    "message": f"Need {self.min_data_points} data points, have {content_count}"
+                    "message": f"Need {self.min_data_points} data points, have {content_count}",
                 }
 
             # Analyze by format using SQL aggregation (much faster than Python loops)
-            format_stats = db.query(
-                ContentPlan.format,
-                func.count(PublishedContent.id).label('count'),
-                func.avg(
-                    PublishedContent.likes + 
-                    PublishedContent.comments * 2 + 
-                    PublishedContent.shares * 3
-                ).label('avg_engagement')
-            ).join(
-                PublishedContent.content_plan
-            ).filter(
-                PublishedContent.published_at >= cutoff
-            ).group_by(
-                ContentPlan.format
-            ).all()
-                    "message": f"Need {self.min_data_points} data points, have {len(content_items)}",
-                }
-
-            # Analyze by format
-            format_performance = {}
-
-            for content in content_items:
-                fmt = content.content_plan.format.value
-
-                if fmt not in format_performance:
-                    format_performance[fmt] = {
-                        "count": 0,
-                        "total_engagement": 0,
-                        "avg_engagement_rate": 0,
-                        "best_performing_assets": [],
-                    }
-
-                format_performance[fmt]["count"] += 1
-
-                engagement = (
-                    (content.likes or 0) + (content.comments or 0) * 2 + (content.shares or 0) * 3
+            format_stats = (
+                db.query(
+                    ContentPlan.format,
+                    func.count(PublishedContent.id).label("count"),
+                    func.avg(
+                        PublishedContent.likes
+                        + PublishedContent.comments * 2
+                        + PublishedContent.shares * 3
+                    ).label("avg_engagement"),
                 )
-
-                format_performance[fmt]["total_engagement"] += engagement
-
-            # Calculate averages
-            for fmt in format_performance:
-                count = format_performance[fmt]["count"]
-
-                if count > 0:
-                    format_performance[fmt]["avg_engagement_rate"] = (
-                        format_performance[fmt]["total_engagement"] / count
-                    )
-
-            # Analyze by insight type
-            insight_performance = {}
-
-            for content in content_items:
-                if not content.content_plan or not content.content_plan.insight:
-                    continue
-
-                insight_type = content.content_plan.insight.type.value
-
-                if insight_type not in insight_performance:
-                    insight_performance[insight_type] = {
-                        "count": 0,
-                        "total_engagement": 0,
-                        "avg_engagement_rate": 0,
-                        "hit_rate": 0,  # Placeholder for signal accuracy
-                    }
-
-                insight_performance[insight_type]["count"] += 1
+                .join(PublishedContent.content_plan)
+                .filter(PublishedContent.published_at >= cutoff)
+                .group_by(ContentPlan.format)
+                .all()
+            )
 
             format_performance = {
                 stat.format.value: {
                     "count": stat.count,
                     "avg_engagement_rate": float(stat.avg_engagement or 0),
-                    "total_engagement": 0,  # Calculated if needed
-                    "best_performing_assets": []
+                    "total_engagement": 0,
+                    "best_performing_assets": [],
                 }
                 for stat in format_stats
             }
 
             # Analyze by insight type using SQL aggregation
-            insight_stats = db.query(
-                Insight.type,
-                func.count(PublishedContent.id).label('count'),
-                func.avg(PublishedContent.engagement_rate).label('avg_engagement')
-            ).join(
-                ContentPlan, ContentPlan.insight_id == Insight.id
-            ).join(
-                PublishedContent, PublishedContent.content_plan_id == ContentPlan.id
-            ).filter(
-                PublishedContent.published_at >= cutoff
-            ).group_by(
-                Insight.type
-            ).all()
+            insight_stats = (
+                db.query(
+                    Insight.type,
+                    func.count(PublishedContent.id).label("count"),
+                    func.avg(PublishedContent.engagement_rate).label("avg_engagement"),
+                )
+                .join(ContentPlan, ContentPlan.insight_id == Insight.id)
+                .join(PublishedContent, PublishedContent.content_plan_id == ContentPlan.id)
+                .filter(PublishedContent.published_at >= cutoff)
+                .group_by(Insight.type)
+                .all()
+            )
 
             insight_performance = {
                 stat.type.value: {
                     "count": stat.count,
                     "avg_engagement_rate": float(stat.avg_engagement or 0),
-                    "total_engagement": 0,  # Kept for compatibility
-                    "hit_rate": 0  # Placeholder for signal accuracy
+                    "total_engagement": 0,
+                    "hit_rate": 0,
                 }
                 for stat in insight_stats
             }
@@ -236,8 +184,7 @@ class StrategyTuningAgent(BaseAgent):
             return {
                 "format_performance": format_performance,
                 "insight_performance": insight_performance,
-                "total_content_analyzed": content_count
-                "total_content_analyzed": len(content_items),
+                "total_content_analyzed": content_count,
             }
 
     async def _analyze_conversion_performance(self) -> dict:
@@ -454,7 +401,7 @@ Format as JSON array:
                 adjustment_count += 1
 
                 self.log_info(
-                    f"Applied adjustment: {rec['action']} " f"(confidence: {rec['confidence']:.0%})"
+                    f"Applied adjustment: {rec['action']} (confidence: {rec['confidence']:.0%})"
                 )
 
         return applied
@@ -476,7 +423,7 @@ Format as JSON array:
         # For now, we'll log what would be changed
 
         self.log_info(
-            f"Would apply adjustment: {action}\n" f"Parameters: {json.dumps(adjustment, indent=2)}"
+            f"Would apply adjustment: {action}\nParameters: {json.dumps(adjustment, indent=2)}"
         )
 
         # Store adjustment in database for tracking

@@ -1,10 +1,14 @@
 import json
-from src.agents.base_agent import BaseAgent
-from src.utils.llm_client import llm_client
+from typing import Optional
+
 from loguru import logger
 
+from src.agents.base_agent import BaseAgent
+from src.utils.llm_client import llm_client
+
+
 class InsightGenerationAgent(BaseAgent):
-    SYSTEM_PROMPT = '''
+    SYSTEM_PROMPT = """
 [INST]
 You are an Elite AI Researcher and Lead Data Scientist, specialized in Causal Inference, Advanced Statistical Modeling, Data Mining, and Explainable AI (XAI).
 
@@ -71,13 +75,15 @@ Your output should be a structured, academic-grade report detailing:
 
 You are about to receive performance data, ROI reports, or a specific analytical query. Your task is to apply your expertise as outlined above.
 [/INST]
-'''
-    
+"""
+
     def __init__(self):
         super().__init__("InsightGenerationAgent")
         self.llm = llm_client
 
-    async def execute(self, task_description: str, data: dict = None, *args, **kwargs) -> str:
+    async def execute(
+        self, task_description: str, data: Optional[dict] = None, *args, **kwargs
+    ) -> str:
         """
         Executes the InsightGenerationAgent's task, performing deep-dive analysis
         and generating actionable recommendations based on provided data and a task description.
@@ -105,36 +111,52 @@ You are about to receive performance data, ROI reports, or a specific analytical
         logger.info(f"InsightGenerationAgent received task: '{task_description}'")
         if data:
             # Log a snippet of the data to avoid excessively long log entries
-            data_snippet = json.dumps(data, indent=2)[:500] + ("..." if len(json.dumps(data, indent=2)) > 500 else "")
+            data_snippet = json.dumps(data, indent=2)[:500] + (
+                "..." if len(json.dumps(data, indent=2)) > 500 else ""
+            )
             logger.info(f"Data provided for analysis (snippet): {data_snippet}")
         else:
             logger.info("No explicit data dictionary provided for analysis.")
-        
+
         user_message_parts = [
             "Please perform the following analytical task:\n",
-            f"**TASK DESCRIPTION:** {task_description}"
+            f"**TASK DESCRIPTION:** {task_description}",
         ]
         if data:
-            user_message_parts.append(f"\n\n**DATA PROVIDED FOR ANALYSIS (JSON format):**\njson\n{json.dumps(data, indent=2)}\n")
-        
+            user_message_parts.append(
+                f"\n\n**DATA PROVIDED FOR ANALYSIS (JSON format):**\njson\n{json.dumps(data, indent=2)}\n"
+            )
+
         # Combine system prompt with user input using explicit tags for clear separation
-        full_prompt = self.SYSTEM_PROMPT + "\n\n" + "[USER_INPUT]\n" + "\n".join(user_message_parts) + "\n[/USER_INPUT]"
+        full_prompt = (
+            self.SYSTEM_PROMPT
+            + "\n\n"
+            + "[USER_INPUT]\n"
+            + "\n".join(user_message_parts)
+            + "\n[/USER_INPUT]"
+        )
 
         try:
             # Pop LLM specific parameters from kwargs, providing defaults for robustness
-            model_name = kwargs.pop('model', 'gemini-pro')
-            temperature = kwargs.pop('temperature', 0.7) # A balanced temperature for analytical tasks
-            max_output_tokens = kwargs.pop('max_output_tokens', 4096) # Ample tokens for a detailed report
-            
+            model_name = kwargs.pop("model", "gemini-pro")
+            temperature = kwargs.pop(
+                "temperature", 0.7
+            )  # A balanced temperature for analytical tasks
+            max_output_tokens = kwargs.pop(
+                "max_output_tokens", 4096
+            )  # Ample tokens for a detailed report
+
             response = await self.llm.generate(
                 model=model_name,
                 prompt=full_prompt,
                 temperature=temperature,
                 max_output_tokens=max_output_tokens,
-                **kwargs # Pass any remaining kwargs to the LLM client
+                **kwargs,  # Pass any remaining kwargs to the LLM client
             )
-            logger.info(f"InsightGenerationAgent successfully generated insights for task '{task_description}'.")
+            logger.info(
+                f"InsightGenerationAgent successfully generated insights for task '{task_description}'."
+            )
             return response
         except Exception as e:
             logger.error(f"InsightGenerationAgent failed to execute task '{task_description}': {e}")
-            raise # Re-raise the exception after logging for upstream handling
+            raise  # Re-raise the exception after logging for upstream handling

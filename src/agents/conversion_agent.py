@@ -3,8 +3,7 @@
 from datetime import datetime, timedelta, timezone
 
 from anthropic import Anthropic
-from sqlalchemy import func, case
-from sqlalchemy.orm import joinedload
+from sqlalchemy import case, func
 
 from config.config import settings
 from src.agents.base_agent import BaseAgent
@@ -13,7 +12,6 @@ from src.api_integrations.twitter_api import TwitterAPI
 from src.database.connection import get_db
 from src.database.models import CommunityUser, ConversionAttempt, UserInteraction, UserTier
 from src.utils.interaction_manager import InteractionManager
-from config.config import settings
 
 
 class ConversionAgent(BaseAgent):
@@ -30,12 +28,12 @@ class ConversionAgent(BaseAgent):
 
     # Engagement scoring weights (configurable)
     ENGAGEMENT_WEIGHTS = {
-        'like': 1,
-        'reply': 3,
-        'retweet': 2,
-        'quote': 4,
-        'dm_open': 5,
-        'dm_click': 10
+        "like": 1,
+        "reply": 3,
+        "retweet": 2,
+        "quote": 4,
+        "dm_open": 5,
+        "dm_click": 10,
     }
 
     def __init__(self):
@@ -148,27 +146,46 @@ class ConversionAgent(BaseAgent):
         with get_db() as db:
             # Efficient: Use SQL aggregation to calculate scores in one query
             # This replaces the N+1 query pattern with a single query
-            interaction_stats = db.query(
-                UserInteraction.user_id,
-                func.count(UserInteraction.id).label('interaction_count'),
-                func.max(UserInteraction.timestamp).label('last_interaction'),
-                func.sum(
-                    UserInteraction.engagement_value *
-                    case(
-                        (UserInteraction.interaction_type == 'like', self.ENGAGEMENT_WEIGHTS['like']),
-                        (UserInteraction.interaction_type == 'reply', self.ENGAGEMENT_WEIGHTS['reply']),
-                        (UserInteraction.interaction_type == 'retweet', self.ENGAGEMENT_WEIGHTS['retweet']),
-                        (UserInteraction.interaction_type == 'quote', self.ENGAGEMENT_WEIGHTS['quote']),
-                        (UserInteraction.interaction_type == 'dm_open', self.ENGAGEMENT_WEIGHTS['dm_open']),
-                        (UserInteraction.interaction_type == 'dm_click', self.ENGAGEMENT_WEIGHTS['dm_click']),
-                        else_=1
-                    )
-                ).label('weighted_score')
-            ).filter(
-                UserInteraction.timestamp >= cutoff
-            ).group_by(
-                UserInteraction.user_id
-            ).all()
+            interaction_stats = (
+                db.query(
+                    UserInteraction.user_id,
+                    func.count(UserInteraction.id).label("interaction_count"),
+                    func.max(UserInteraction.timestamp).label("last_interaction"),
+                    func.sum(
+                        UserInteraction.engagement_value
+                        * case(
+                            (
+                                UserInteraction.interaction_type == "like",
+                                self.ENGAGEMENT_WEIGHTS["like"],
+                            ),
+                            (
+                                UserInteraction.interaction_type == "reply",
+                                self.ENGAGEMENT_WEIGHTS["reply"],
+                            ),
+                            (
+                                UserInteraction.interaction_type == "retweet",
+                                self.ENGAGEMENT_WEIGHTS["retweet"],
+                            ),
+                            (
+                                UserInteraction.interaction_type == "quote",
+                                self.ENGAGEMENT_WEIGHTS["quote"],
+                            ),
+                            (
+                                UserInteraction.interaction_type == "dm_open",
+                                self.ENGAGEMENT_WEIGHTS["dm_open"],
+                            ),
+                            (
+                                UserInteraction.interaction_type == "dm_click",
+                                self.ENGAGEMENT_WEIGHTS["dm_click"],
+                            ),
+                            else_=1,
+                        )
+                    ).label("weighted_score"),
+                )
+                .filter(UserInteraction.timestamp >= cutoff)
+                .group_by(UserInteraction.user_id)
+                .all()
+            )
         with get_db() as db:
             users = db.query(CommunityUser).all()
 
@@ -176,7 +193,7 @@ class ConversionAgent(BaseAgent):
                 # Get user's interactions from last 30 days
                 cutoff = datetime.now(tz=timezone.utc) - timedelta(days=30)
 
-                interactions = (
+                (
                     db.query(UserInteraction)
                     .filter(UserInteraction.user_id == user.id, UserInteraction.timestamp >= cutoff)
                     .all()
@@ -185,9 +202,9 @@ class ConversionAgent(BaseAgent):
             # Create a lookup dict for O(1) access
             stats_by_user = {
                 stat.user_id: {
-                    'count': stat.interaction_count,
-                    'last_interaction': stat.last_interaction,
-                    'weighted_score': stat.weighted_score or 0
+                    "count": stat.interaction_count,
+                    "last_interaction": stat.last_interaction,
+                    "weighted_score": stat.weighted_score or 0,
                 }
                 for stat in interaction_stats
             }
@@ -196,18 +213,16 @@ class ConversionAgent(BaseAgent):
             users = db.query(CommunityUser).all()
 
             for user in users:
-                stats = stats_by_user.get(user.id, {
-                    'count': 0,
-                    'last_interaction': None,
-                    'weighted_score': 0
-                })
+                stats = stats_by_user.get(
+                    user.id, {"count": 0, "last_interaction": None, "weighted_score": 0}
+                )
 
                 # Normalize weighted score to 0-100 scale
-                score = min(100, (stats['weighted_score'] / 50) * 100)
-                
+                score = min(100, (stats["weighted_score"] / 50) * 100)
+
                 user.engagement_score = round(score, 2)
-                user.total_interactions = stats['count']
-                user.last_interaction = stats['last_interaction']
+                user.total_interactions = stats["count"]
+                user.last_interaction = stats["last_interaction"]
 
             db.commit()
 
@@ -292,7 +307,7 @@ class ConversionAgent(BaseAgent):
             )
 
             self.log_info(
-                f"Created discount code: {coupon['id']} " f"({self.discount_percentage}% off)"
+                f"Created discount code: {coupon['id']} ({self.discount_percentage}% off)"
             )
 
             return coupon

@@ -270,9 +270,9 @@ class ExclusiveContentAgent(BaseAgent):
         content = f"""
 {prefix} | ${insight.asset}
 
-**Type:** {insight.type.value.replace('_', ' ').title()}
+**Type:** {insight.type.value.replace("_", " ").title()}
 **Confidence:** {insight.confidence:.0%}
-**Time:** {insight.timestamp.strftime('%Y-%m-%d %H:%M UTC')}
+**Time:** {insight.timestamp.strftime("%Y-%m-%d %H:%M UTC")}
 
 **Analysis:**
 {llm_analysis}

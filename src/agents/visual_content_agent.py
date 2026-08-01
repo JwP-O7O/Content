@@ -1,11 +1,14 @@
 import json
+from typing import Any, Optional
+
+from loguru import logger
+
 from src.agents.base_agent import BaseAgent
 from src.utils.llm_client import llm_client
-from loguru import logger
-from typing import Dict, Any, Optional
+
 
 class VisualContentAgent(BaseAgent):
-    SYSTEM_PROMPT = '''
+    SYSTEM_PROMPT = """
     [INST]
     **Persona**: You are an advanced AI architect specializing in computational aesthetics and generative visual content synthesis. You are tasked with transforming abstract textual concepts into concrete, highly-detailed visual specifications for AI-driven image generation. Your expertise spans Generative Adversarial Networks (GANs), Diffusion Models, and various Image Synthesis paradigms. You operate as a critical component within a sophisticated autonomous content creation system for crypto-market analysis.
 
@@ -71,16 +74,21 @@ class VisualContentAgent(BaseAgent):
         // ... potentially other concepts if diversification is beneficial
       ]
     }
-    
+
     [/INST]
-    '''
-    
+    """
+
     def __init__(self):
         super().__init__("VisualContentAgent")
         self.llm = llm_client
 
-    async def execute(self, text_content: str, content_strategy: Optional[Dict[str, Any]] = None, 
-                      visual_requirements: Optional[Dict[str, Any]] = None, **kwargs) -> Dict[str, Any]:
+    async def execute(
+        self,
+        text_content: str,
+        content_strategy: Optional[dict[str, Any]] = None,
+        visual_requirements: Optional[dict[str, Any]] = None,
+        **kwargs,
+    ) -> dict[str, Any]:
         """
         Executes the VisualContentAgent's task to generate detailed visual content specifications
         (prompts and parameters) for AI-driven image generation.
@@ -107,7 +115,9 @@ class VisualContentAgent(BaseAgent):
             json.JSONDecodeError: If the LLM's response cannot be parsed as valid JSON.
             Exception: For any other errors encountered during execution.
         """
-        logger.info(f"VisualContentAgent initiated for content: '{text_content[:150]}{'...' if len(text_content) > 150 else ''}'")
+        logger.info(
+            f"VisualContentAgent initiated for content: '{text_content[:150]}{'...' if len(text_content) > 150 else ''}'"
+        )
 
         # Ensure content_strategy and visual_requirements are dictionaries for consistent payload
         content_strategy = content_strategy if content_strategy is not None else {}
@@ -118,36 +128,48 @@ class VisualContentAgent(BaseAgent):
             "text_content": text_content,
             "content_strategy": content_strategy,
             "visual_requirements": visual_requirements,
-            **kwargs # Pass along any additional kwargs from the caller
+            **kwargs,  # Pass along any additional kwargs from the caller
         }
-        
+
         user_prompt = f"Based on the following inputs, generate a JSON object with visual content specifications:\n{json.dumps(user_message_payload, indent=2)}"
 
         try:
-            logger.debug("Calling LLM with SYSTEM_PROMPT and user_prompt to generate visual specifications...")
-            
+            logger.debug(
+                "Calling LLM with SYSTEM_PROMPT and user_prompt to generate visual specifications..."
+            )
+
             # Assuming llm_client.generate handles json_mode correctly and returns a parsed dict.
             # If it returns a string, then `json.loads()` would be needed.
             response_data = await self.llm.generate(
                 system_prompt=self.SYSTEM_PROMPT,
                 user_prompt=user_prompt,
-                json_mode=True # Explicitly request JSON output
+                json_mode=True,  # Explicitly request JSON output
             )
-            
+
             if not isinstance(response_data, dict):
-                raise TypeError(f"LLM client did not return a dictionary in JSON mode. Received type: {type(response_data)}")
+                msg = f"LLM client did not return a dictionary in JSON mode. Received type: {type(response_data)}"
+                raise TypeError(msg)
 
             if not response_data.get("visual_concepts"):
                 logger.warning("LLM returned an empty or malformed 'visual_concepts' list.")
                 # Return a default empty structure or raise an error depending on desired strictness
                 return {"visual_concepts": []}
 
-            logger.info(f"VisualContentAgent successfully generated {len(response_data.get('visual_concepts', []))} visual concept(s).")
+            logger.info(
+                f"VisualContentAgent successfully generated {len(response_data.get('visual_concepts', []))} visual concept(s)."
+            )
             return response_data
 
         except TypeError as e:
-            logger.error(f"VisualContentAgent encountered a type error (likely JSON parsing issue): {e}")
-            raise json.JSONDecodeError(f"LLM response was not a valid JSON object or not parsed correctly: {e}", doc=str(response_data), pos=0)
+            logger.error(
+                f"VisualContentAgent encountered a type error (likely JSON parsing issue): {e}"
+            )
+            msg = f"LLM response was not a valid JSON object or not parsed correctly: {e}"
+            raise json.JSONDecodeError(
+                msg,
+                doc=str(response_data),
+                pos=0,
+            )
         except Exception as e:
             logger.error(f"VisualContentAgent execution failed: {e}", exc_info=True)
             raise

@@ -4,8 +4,6 @@ import enum
 from datetime import datetime
 
 from sqlalchemy import (
-    Column, Integer, String, Float, DateTime, Boolean,
-    Text, JSON, ForeignKey, Enum, Index
     JSON,
     Boolean,
     Column,
@@ -13,6 +11,7 @@ from sqlalchemy import (
     Enum,
     Float,
     ForeignKey,
+    Index,
     Integer,
     String,
     Text,
@@ -142,7 +141,7 @@ class PublishedContent(Base):
     __tablename__ = "published_content"
     __table_args__ = (
         # Composite index for analytics queries
-        Index('idx_published_content_platform_published', 'platform', 'published_at'),
+        Index("idx_published_content_platform_published", "platform", "published_at"),
     )
 
     id = Column(Integer, primary_key=True)
@@ -207,7 +206,7 @@ class CommunityUser(Base):
     __tablename__ = "community_users"
     __table_args__ = (
         # Composite index for conversion queries
-        Index('idx_community_user_tier_engagement', 'tier', 'engagement_score'),
+        Index("idx_community_user_tier_engagement", "tier", "engagement_score"),
     )
 
     id = Column(Integer, primary_key=True)
@@ -292,7 +291,7 @@ class UserInteraction(Base):
     __tablename__ = "user_interactions"
     __table_args__ = (
         # Composite index for efficient engagement score queries
-        Index('idx_user_interaction_user_timestamp', 'user_id', 'timestamp'),
+        Index("idx_user_interaction_user_timestamp", "user_id", "timestamp"),
     )
 
     id = Column(Integer, primary_key=True)

@@ -1,11 +1,14 @@
 import json
+from typing import Optional
+
+from loguru import logger
+
 from src.agents.base_agent import BaseAgent
 from src.utils.llm_client import llm_client
-from loguru import logger
-import asyncio # Assuming llm_client.generate might be an async operation
+
 
 class SocialPublishingAgent(BaseAgent):
-    SYSTEM_PROMPT = '''
+    SYSTEM_PROMPT = """
 [PERSONA]
 You are the "SocialPublishingAgent," a highly specialized and meticulously designed autonomous AI entity operating within the GEMINI Content Creator system. Your core identity is that of a Cross-Platform Content Publisher and Scheduler. You operate with paramount precision, reliability, and an unwavering commitment to operational excellence, functioning as the final, critical gatekeeper for all outward-facing content distribution. You are a technical expert in integrating with diverse third-party APIs and managing complex asynchronous workflows.
 
@@ -66,14 +69,21 @@ Think step-by-step. Verify your assumptions against the current context and avai
 
 [OUTPUT FORMAT]
 Your output MUST be a structured JSON object. This JSON object should detail the comprehensive publication plan for each platform, or a textual query/error message if more information is critically needed or an unresolvable issue is detected. Ensure the JSON is well-formed and adheres to a clear schema for programmatic consumption.
-'''
-            
+"""
+
     def __init__(self):
         super().__init__("SocialPublishingAgent")
         self.llm = llm_client
         logger.info("SocialPublishingAgent initialized with LLM client.")
 
-    async def execute(self, content_payload: dict, platforms: list, schedule_time: str = None, dry_run: bool = True, **kwargs) -> dict:
+    async def execute(
+        self,
+        content_payload: dict,
+        platforms: list,
+        schedule_time: Optional[str] = None,
+        dry_run: bool = True,
+        **kwargs,
+    ) -> dict:
         """
         Executes the content publishing strategy formulation for the SocialPublishingAgent.
 
@@ -105,8 +115,10 @@ Your output MUST be a structured JSON object. This JSON object should detail the
                   The plan will typically include proposed API interactions, error handling
                   strategies, and platform-specific adjustments, structured as JSON.
         """
-        logger.info(f"SocialPublishingAgent received an execute request for publication planning.")
-        logger.debug(f"Input: Content Type(s): {content_payload.keys()}, Target Platforms: {platforms}, Scheduled Time: {schedule_time if schedule_time else 'Immediate'}, Dry Run: {dry_run}")
+        logger.info("SocialPublishingAgent received an execute request for publication planning.")
+        logger.debug(
+            f"Input: Content Type(s): {content_payload.keys()}, Target Platforms: {platforms}, Scheduled Time: {schedule_time if schedule_time else 'Immediate'}, Dry Run: {dry_run}"
+        )
 
         # Construct the user message, providing the specific task details to the LLM.
         # The LLM will use its SYSTEM_PROMPT instructions to process this task.
@@ -115,8 +127,10 @@ Your output MUST be a structured JSON object. This JSON object should detail the
             "content_to_publish": content_payload,
             "target_platforms": platforms,
             "publication_schedule": schedule_time if schedule_time else "immediate",
-            "operation_mode": "dry_run" if dry_run else "execute_plan", # Explicitly communicate dry_run intent
-            "additional_context": kwargs
+            "operation_mode": "dry_run"
+            if dry_run
+            else "execute_plan",  # Explicitly communicate dry_run intent
+            "additional_context": kwargs,
         }
 
         try:
@@ -125,7 +139,7 @@ Your output MUST be a structured JSON object. This JSON object should detail the
             logger.debug("Calling LLM to generate publication plan...")
             llm_response_content = await self.llm.generate(
                 system_prompt=self.SYSTEM_PROMPT,
-                user_message=json.dumps(user_message_data, indent=2) 
+                user_message=json.dumps(user_message_data, indent=2),
             )
             logger.info("LLM responded with a publication plan.")
 
@@ -143,13 +157,15 @@ Your output MUST be a structured JSON object. This JSON object should detail the
                     "status": "LLM_RESPONSE_PARSE_ERROR",
                     "message": "LLM did not return a valid JSON object as expected.",
                     "raw_llm_response": llm_response_content,
-                    "request_payload": user_message_data
+                    "request_payload": user_message_data,
                 }
 
         except Exception as e:
-            logger.error(f"Critical error during SocialPublishingAgent execution: {e}", exc_info=True)
+            logger.error(
+                f"Critical error during SocialPublishingAgent execution: {e}", exc_info=True
+            )
             return {
                 "status": "CRITICAL_ERROR",
-                "message": f"An unhandled exception occurred during LLM interaction: {str(e)}",
-                "request_payload": user_message_data
+                "message": f"An unhandled exception occurred during LLM interaction: {e!s}",
+                "request_payload": user_message_data,
             }

@@ -1,15 +1,13 @@
 """SystemArchitectAgent - Analyzes documentation and builds specialized sub-agents."""
 
-import os
 import json
+import os
 import re
-import asyncio
-from typing import List, Dict, Any
-from datetime import datetime
+from typing import Any
 
 from src.agents.base_agent import BaseAgent
 from src.utils.llm_client import llm_client
-from loguru import logger
+
 
 class SystemArchitectAgent(BaseAgent):
     """
@@ -21,9 +19,9 @@ class SystemArchitectAgent(BaseAgent):
     def __init__(self):
         super().__init__("SystemArchitectAgent")
         self.llm = llm_client
-        self.agents_dir = "agents" # Corrected path relative to where we run
+        self.agents_dir = "agents"  # Corrected path relative to where we run
 
-    async def execute(self, doc_paths: List[str], **kwargs) -> Dict[str, Any]:
+    async def execute(self, doc_paths: list[str], **kwargs) -> dict[str, Any]:
         """
         Analyze documents and generate agents.
 
@@ -37,7 +35,7 @@ class SystemArchitectAgent(BaseAgent):
         for path in doc_paths:
             if os.path.exists(path):
                 try:
-                    with open(path, 'r') as f:
+                    with open(path) as f:
                         context_content += f"\n--- CONTENT OF {path} ---\n"
                         context_content += f.read()
                 except Exception as e:
@@ -50,9 +48,9 @@ class SystemArchitectAgent(BaseAgent):
 
         # 2. Architect the Solution (Define Agents)
         architecture = await self._design_architecture(context_content)
-        
+
         if not architecture:
-             return {"status": "error", "message": "Failed to design architecture."}
+            return {"status": "error", "message": "Failed to design architecture."}
 
         # 3. Generate Code for each Agent
         generated_agents = []
@@ -67,18 +65,18 @@ class SystemArchitectAgent(BaseAgent):
         return {
             "status": "success",
             "architecture_plan": architecture,
-            "generated_agents": generated_agents
+            "generated_agents": generated_agents,
         }
 
-    async def _design_architecture(self, context: str) -> Dict:
+    async def _design_architecture(self, context: str) -> dict:
         """Uses LLM to design the agent architecture based on docs."""
         self.log_info("Designing multi-agent architecture...")
 
         prompt = f"""
         You are a Distinguished Professor of Artificial Intelligence Engineering and System Architecture.
-        
+
         Based on the following project documentation, design a Multi-Agent System (MAS) that perfectly executes the project goals.
-        
+
         Analyze the specific domain (e.g., Trading, Content, Healthcare) and propose agents that are:
         1. Highly Specialized (separation of concerns).
         2. Theoretically Grounded (using specific academic frameworks suitable for the task).
@@ -92,7 +90,7 @@ class SystemArchitectAgent(BaseAgent):
             "rationale": "Brief explanation of the architecture choice.",
             "agents": [
                 {{
-                    "name": "NameAgent", 
+                    "name": "NameAgent",
                     "role": "Specific Role",
                     "academic_framework": "e.g. Chain-of-Thought, ReAct, Game Theory, Bayesian Inference",
                     "responsibility": "Core task description"
@@ -100,7 +98,7 @@ class SystemArchitectAgent(BaseAgent):
             ]
         }}
         """
-        
+
         try:
             response = self.llm.generate(prompt, model="gemini")
             # Clean cleanup json
@@ -110,30 +108,30 @@ class SystemArchitectAgent(BaseAgent):
             self.log_error(f"Architecture design failed: {e}")
             return None
 
-    async def _generate_agent_code(self, agent_def: Dict, context: str) -> bool:
+    async def _generate_agent_code(self, agent_def: dict, context: str) -> bool:
         """Generates the Python code for a single agent."""
-        name = agent_def['name']
+        name = agent_def["name"]
         self.log_info(f"Generating code for {name}...")
 
         # We construct the prompt carefully to avoid syntax errors in the python code string
         prompt = f"""
         You are a Lead Python Developer and AI Researcher.
-        
+
         Task: Write the complete Python code for a new Agent class named `{name}`.
-        
+
         Context:
         - Project: {context[:2000]}
-        - Role: {agent_def['role']}
-        - Framework: {agent_def['academic_framework']}
-        - Responsibility: {agent_def['responsibility']} 
-        
+        - Role: {agent_def["role"]}
+        - Framework: {agent_def["academic_framework"]}
+        - Responsibility: {agent_def["responsibility"]}
+
         Requirements:
         1. Inherit from `src.agents.base_agent.BaseAgent`.
         2. Imports: `from src.agents.base_agent import BaseAgent`, `from loguru import logger`, etc.
         3. **CRITICAL**: Define a class constant string named `SYSTEM_PROMPT`.
-           - This prompt must be "Academic Grade". 
+           - This prompt must be "Academic Grade".
            - It must define the Persona, Objective, Theoretical Constraints, and Workflow.
-           - It must explicitly reference the assigned academic framework ({agent_def['academic_framework']}).
+           - It must explicitly reference the assigned academic framework ({agent_def["academic_framework"]}).
            - It should use advanced prompting techniques (e.g. "Think step-by-step", "Verify your assumptions").
         4. Implement the `async def execute(self, *args, **kwargs)` method.
            - It should use `llm_client` (assume it is imported from `src.utils.llm_client`) to perform its task using the `SYSTEM_PROMPT`.
@@ -146,12 +144,12 @@ class SystemArchitectAgent(BaseAgent):
         from src.agents.base_agent import BaseAgent
         from src.utils.llm_client import llm_client
         from loguru import logger
-        
+
         class {name}(BaseAgent):
             SYSTEM_PROMPT = '''
             [Your high-quality prompt here]
             '''
-            
+
             def __init__(self):
                 super().__init__("{name}")
                 self.llm = llm_client
@@ -165,20 +163,20 @@ class SystemArchitectAgent(BaseAgent):
         try:
             code = self.llm.generate(prompt, model="gemini")
             code = code.replace("```python", "").replace("```", "").strip()
-            
+
             # Sanity check: Does it look like python?
             if "class " not in code or "def execute" not in code:
                 self.log_error(f"Generated code for {name} seems invalid.")
                 return False
 
             # Convert camelCase to snake_case for filename
-            filename = re.sub(r'(?<!^)(?=[A-Z])', '_', name).lower() + ".py"
+            filename = re.sub(r"(?<!^)(?=[A-Z])", "_", name).lower() + ".py"
             filepath = os.path.join(self.agents_dir, filename)
-            
+
             # Write file
             with open(filepath, "w") as f:
                 f.write(code)
-                
+
             self.log_info(f"Successfully wrote {filepath}")
             return True
 
@@ -199,24 +197,30 @@ class SystemArchitectAgent(BaseAgent):
             for filename in os.listdir(self.agents_dir):
                 if filename.endswith(".py") and filename not in ["__init__.py", "base_agent.py"]:
                     # Simple parse
-                    with open(os.path.join(self.agents_dir, filename), 'r') as f:
+                    with open(os.path.join(self.agents_dir, filename)) as f:
                         content = f.read()
-                        match = re.search(r'class (\w+)\(BaseAgent\):', content)
+                        match = re.search(r"class (\w+)\(BaseAgent\):", content)
                         if match:
                             cls_name = match.group(1)
                             # Get docstring
                             doc_match = re.search(r'"""(.*?)"""', content, re.DOTALL)
-                            desc = doc_match.group(1).strip().split('\n')[0] if doc_match else "No description."
-                            
-                            registry.append({
-                                "name": cls_name,
-                                "file_path": f"agents/{filename}",
-                                "description": desc,
-                                "module": f"agents.{filename[:-3]}"
-                            })
-            
+                            desc = (
+                                doc_match.group(1).strip().split("\n")[0]
+                                if doc_match
+                                else "No description."
+                            )
+
+                            registry.append(
+                                {
+                                    "name": cls_name,
+                                    "file_path": f"agents/{filename}",
+                                    "description": desc,
+                                    "module": f"agents.{filename[:-3]}",
+                                }
+                            )
+
             with open("agent_registry.json", "w") as f:
                 json.dump(registry, f, indent=2)
-                
+
         except Exception as e:
             self.log_error(f"Registry update failed: {e}")

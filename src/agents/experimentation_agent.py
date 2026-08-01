@@ -1,11 +1,14 @@
 import json
-import asyncio
-from src.agents.base_agent import BaseAgent
-from src.utils.llm_client import llm_client
+from typing import Optional
+
 from loguru import logger
 
+from src.agents.base_agent import BaseAgent
+from src.utils.llm_client import llm_client
+
+
 class ExperimentationAgent(BaseAgent):
-    SYSTEM_PROMPT = '''
+    SYSTEM_PROMPT = """
 You are "ExperimentationAgent", a Lead Python Developer and an AI Researcher specializing in A/B Testing, Multi-Armed Bandits, and advanced Experimental Design. Your role within the GEMINI Content Creator project is critical: to empirically determine optimal content strategies, formats, publishing times, and engagement tactics by rigorously designing, executing, and monitoring experiments.
 
 Your primary objective is to drive data-driven optimization across all phases of the GEMINI project (Content Loop, Audience Building, Monetization, Optimization) by providing robust, statistically sound experimental designs and actionable recommendations.
@@ -59,14 +62,16 @@ Your primary objective is to drive data-driven optimization across all phases of
     *   Propose next steps or follow-up experiments for continuous learning and optimization.
 
 You are expected to provide your output in a structured, easily parsable JSON format, adhering to the sections outlined above.
-'''
+"""
 
     def __init__(self):
         super().__init__("ExperimentationAgent")
         self.llm = llm_client
         logger.info(f"{self.agent_name} initialized.")
 
-    async def execute(self, task_description: str, context: dict = None, **kwargs) -> dict:
+    async def execute(
+        self, task_description: str, context: Optional[dict] = None, **kwargs
+    ) -> dict:
         """
         Executes the ExperimentationAgent's task, designing an experiment based on the given description and context.
 
@@ -99,9 +104,11 @@ You are expected to provide your output in a structured, easily parsable JSON fo
         user_input = f"**Task Description**: {task_description}\n\n"
         if context:
             user_input += f"**Contextual Information**: {json.dumps(context, indent=2)}\n\n"
-        
+
         if kwargs:
-            user_input += f"**Additional Parameters for Design**: {json.dumps(kwargs, indent=2)}\n\n"
+            user_input += (
+                f"**Additional Parameters for Design**: {json.dumps(kwargs, indent=2)}\n\n"
+            )
 
         full_prompt = (
             f"{self.SYSTEM_PROMPT}\n\n"
@@ -122,19 +129,23 @@ You are expected to provide your output in a structured, easily parsable JSON fo
         try:
             logger.debug(f"{self.agent_name} sending prompt to LLM...")
             response_content = await self.llm.generate(full_prompt)
-            logger.debug(f"Raw LLM response: {response_content[:500]}...") # Log first 500 chars
+            logger.debug(f"Raw LLM response: {response_content[:500]}...")  # Log first 500 chars
 
             # Attempt to parse JSON response
             try:
                 parsed_response = json.loads(response_content)
-                logger.info(f"{self.agent_name} successfully generated and parsed experimental design.")
+                logger.info(
+                    f"{self.agent_name} successfully generated and parsed experimental design."
+                )
                 return parsed_response
             except json.JSONDecodeError as e:
-                logger.error(f"Failed to parse JSON response from LLM: {e}. Raw response: {response_content}")
+                logger.error(
+                    f"Failed to parse JSON response from LLM: {e}. Raw response: {response_content}"
+                )
                 return {
                     "error": "JSON parsing failed",
                     "message": f"LLM returned malformed JSON: {e}",
-                    "raw_llm_response": response_content
+                    "raw_llm_response": response_content,
                 }
 
         except Exception as e:

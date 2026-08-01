@@ -1,9 +1,8 @@
 """AnalyticsAgent - Tracks and analyzes system performance."""
 
-from typing import Dict, List
-from datetime import datetime, timedelta
-from sqlalchemy import func, case
 from datetime import datetime, timedelta, timezone
+
+from sqlalchemy import case, func
 
 from src.agents.base_agent import BaseAgent
 from src.database.connection import get_db
@@ -88,18 +87,21 @@ class AnalyticsAgent(BaseAgent):
         with get_db() as db:
             # Use SQL aggregation instead of loading all logs into memory
             # This is much more efficient for large datasets
-            agent_stats_query = db.query(
-                AgentLog.agent_name,
-                func.count(AgentLog.id).label('total_runs'),
-                func.sum(case((AgentLog.status == 'success', 1), else_=0)).label('successful_runs'),
-                func.sum(case((AgentLog.status == 'error', 1), else_=0)).label('failed_runs'),
-                func.avg(AgentLog.execution_time).label('avg_execution_time'),
-                func.sum(AgentLog.execution_time).label('total_execution_time')
-            ).filter(
-                AgentLog.timestamp >= cutoff
-            ).group_by(
-                AgentLog.agent_name
-            ).all()
+            agent_stats_query = (
+                db.query(
+                    AgentLog.agent_name,
+                    func.count(AgentLog.id).label("total_runs"),
+                    func.sum(case((AgentLog.status == "success", 1), else_=0)).label(
+                        "successful_runs"
+                    ),
+                    func.sum(case((AgentLog.status == "error", 1), else_=0)).label("failed_runs"),
+                    func.avg(AgentLog.execution_time).label("avg_execution_time"),
+                    func.sum(AgentLog.execution_time).label("total_execution_time"),
+                )
+                .filter(AgentLog.timestamp >= cutoff)
+                .group_by(AgentLog.agent_name)
+                .all()
+            )
         with get_db() as db:
             # Get agent logs from last 7 days
             cutoff = datetime.now(tz=timezone.utc) - timedelta(days=7)
@@ -111,18 +113,18 @@ class AnalyticsAgent(BaseAgent):
 
             # Build stats dictionary from aggregated results
             agent_stats = {}
-            
+
             for stat in agent_stats_query:
                 agent_name = stat.agent_name
                 total_runs = stat.total_runs
-                
+
                 agent_stats[agent_name] = {
                     "total_runs": total_runs,
                     "successful_runs": stat.successful_runs,
                     "failed_runs": stat.failed_runs,
                     "total_execution_time": float(stat.total_execution_time or 0),
                     "avg_execution_time": float(stat.avg_execution_time or 0),
-                    "success_rate": stat.successful_runs / total_runs if total_runs > 0 else 0
+                    "success_rate": stat.successful_runs / total_runs if total_runs > 0 else 0,
                 }
 
             for log in logs:
@@ -220,7 +222,7 @@ class AnalyticsAgent(BaseAgent):
             )
         elif posts_per_day > 10:
             recommendations.append(
-                f"⚡ High volume: {posts_per_day:.1f} posts/day. " "Monitor for audience fatigue."
+                f"⚡ High volume: {posts_per_day:.1f} posts/day. Monitor for audience fatigue."
             )
 
         return recommendations
@@ -245,23 +247,23 @@ class AnalyticsAgent(BaseAgent):
 ╔══════════════════════════════════════════════════════════╗
 ║          CONTENT CREATOR - ANALYTICS REPORT              ║
 ║          Period: Last {days} days                            ║
-║          Generated: {datetime.now(tz=timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}        ║
+║          Generated: {datetime.now(tz=timezone.utc).strftime("%Y-%m-%d %H:%M UTC")}        ║
 ╚══════════════════════════════════════════════════════════╝
 
 📊 PERFORMANCE SUMMARY
-{'─' * 60}
+{"─" * 60}
 """
 
         perf = analytics.get("performance_summary", {})
 
         if "total_content" in perf:
             report += f"""
-Total Content Published: {perf['total_content']}
-Total Views:            {perf.get('total_views', 0):,}
-Total Likes:            {perf.get('total_likes', 0):,}
-Total Comments:         {perf.get('total_comments', 0):,}
-Total Shares:           {perf.get('total_shares', 0):,}
-Avg Engagement Rate:    {perf.get('avg_engagement_rate', 0):.2%}
+Total Content Published: {perf["total_content"]}
+Total Views:            {perf.get("total_views", 0):,}
+Total Likes:            {perf.get("total_likes", 0):,}
+Total Comments:         {perf.get("total_comments", 0):,}
+Total Shares:           {perf.get("total_shares", 0):,}
+Avg Engagement Rate:    {perf.get("avg_engagement_rate", 0):.2%}
 
 """
 
@@ -269,10 +271,10 @@ Avg Engagement Rate:    {perf.get('avg_engagement_rate', 0):.2%}
         if "best_performing" in perf:
             best = perf["best_performing"]
             report += f"""🏆 BEST PERFORMING CONTENT
-{'─' * 60}
-Platform:       {best['platform']}
-Engagement:     {best['engagement_rate']:.2%}
-Preview:        {best['preview']}...
+{"─" * 60}
+Platform:       {best["platform"]}
+Engagement:     {best["engagement_rate"]:.2%}
+Preview:        {best["preview"]}...
 
 """
 
@@ -280,7 +282,7 @@ Preview:        {best['preview']}...
         trending = analytics.get("trending_topics", [])
         if trending:
             report += f"""🔥 TRENDING TOPICS
-{'─' * 60}
+{"─" * 60}
 """
             for i, topic in enumerate(trending[:5], 1):
                 report += (
@@ -292,7 +294,7 @@ Preview:        {best['preview']}...
         # Platform breakdown
         if "platform_breakdown" in perf:
             report += f"""📱 PLATFORM BREAKDOWN
-{'─' * 60}
+{"─" * 60}
 """
             for platform, stats in perf["platform_breakdown"].items():
                 report += f"{platform:20} {stats['count']:3} posts | {stats['avg_engagement_rate']:.2%} avg engagement\n"
@@ -303,7 +305,7 @@ Preview:        {best['preview']}...
         recommendations = analytics.get("recommendations", [])
         if recommendations:
             report += f"""💡 RECOMMENDATIONS
-{'─' * 60}
+{"─" * 60}
 """
             for i, rec in enumerate(recommendations, 1):
                 report += f"{i}. {rec}\n\n"
@@ -312,7 +314,7 @@ Preview:        {best['preview']}...
         agent_perf = analytics.get("agent_performance", {})
         if agent_perf:
             report += f"""🤖 AGENT PERFORMANCE
-{'─' * 60}
+{"─" * 60}
 """
             for agent, stats in agent_perf.items():
                 report += (
@@ -322,7 +324,7 @@ Preview:        {best['preview']}...
                 )
 
         report += f"""
-{'═' * 60}
+{"═" * 60}
 End of Report
 """
 

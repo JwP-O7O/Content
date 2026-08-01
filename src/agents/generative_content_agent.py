@@ -1,10 +1,14 @@
 import json
-from src.agents.base_agent import BaseAgent
-from src.utils.llm_client import llm_client
+from typing import Optional
+
 from loguru import logger
 
+from src.agents.base_agent import BaseAgent
+from src.utils.llm_client import llm_client
+
+
 class GenerativeContentAgent(BaseAgent):
-    SYSTEM_PROMPT = '''
+    SYSTEM_PROMPT = """
     You are an advanced Generative AI Researcher and a Senior Content Strategist, specialized in multi-format textual content creation for the cryptocurrency market. You are an integral component of an autonomous AI agent system designed for market analysis, content generation, and social media community management.
 
     **Persona:**
@@ -50,16 +54,24 @@ class GenerativeContentAgent(BaseAgent):
     5.  **Final Output Formatting:**
         *   Format the refined content precisely according to the specified `output_format`. If a JSON output is requested, ensure valid JSON with appropriate keys and values, carefully escaping any necessary characters. If plain text, ensure clean, readable output.
         *   Present the final, polished textual content ready for publishing.
-    '''
+    """
 
     def __init__(self):
         super().__init__("GenerativeContentAgent")
         self.llm = llm_client
 
-    async def execute(self, content_type: str, key_insights: str, target_audience: str,
-                      desired_tone: str, length_constraints: dict,
-                      keywords_to_include: list = None, calls_to_action: list = None,
-                      specific_instructions: str = None, **kwargs) -> str:
+    async def execute(
+        self,
+        content_type: str,
+        key_insights: str,
+        target_audience: str,
+        desired_tone: str,
+        length_constraints: dict,
+        keywords_to_include: Optional[list] = None,
+        calls_to_action: Optional[list] = None,
+        specific_instructions: Optional[str] = None,
+        **kwargs,
+    ) -> str:
         """
         Executes the GenerativeContentAgent to create high-quality, engaging, and contextually relevant
         textual content based on provided parameters.
@@ -92,7 +104,9 @@ class GenerativeContentAgent(BaseAgent):
             Exception: If an error occurs during the content generation process by the LLM.
         """
         logger.info(f"GenerativeContentAgent received request for '{content_type}' content.")
-        logger.debug(f"Key Insights provided: {key_insights[:150]}...") # Log first 150 chars for brevity
+        logger.debug(
+            f"Key Insights provided: {key_insights[:150]}..."
+        )  # Log first 150 chars for brevity
 
         # Construct the user-facing prompt dynamically based on the input parameters
         user_prompt_elements = [
@@ -100,53 +114,70 @@ class GenerativeContentAgent(BaseAgent):
             f"The content must be based on these critical insights: '{key_insights}'.",
             f"It is intended for the target audience: '{target_audience}'.",
             f"The desired communicative tone is: '{desired_tone}'.",
-            f"Adhere to the following length constraints: {json.dumps(length_constraints)}."
+            f"Adhere to the following length constraints: {json.dumps(length_constraints)}.",
         ]
 
         if keywords_to_include:
-            user_prompt_elements.append(f"Ensure these keywords are naturally integrated: {', '.join(keywords_to_include)}.")
+            user_prompt_elements.append(
+                f"Ensure these keywords are naturally integrated: {', '.join(keywords_to_include)}."
+            )
         if calls_to_action:
-            user_prompt_elements.append(f"Include the following calls to action: {', '.join(calls_to_action)}.")
+            user_prompt_elements.append(
+                f"Include the following calls to action: {', '.join(calls_to_action)}."
+            )
         if specific_instructions:
-            user_prompt_elements.append(f"Additional specific instructions: '{specific_instructions}'.")
-        
+            user_prompt_elements.append(
+                f"Additional specific instructions: '{specific_instructions}'."
+            )
+
         # Handle output format request, default to plain text if not specified
-        output_format = kwargs.get('output_format', 'text').lower()
-        if output_format == 'json':
+        output_format = kwargs.get("output_format", "text").lower()
+        if output_format == "json":
             user_prompt_elements.append(
                 "Output MUST be a valid JSON object. The primary content should be under a key named 'content'."
                 "Additional relevant keys (e.g., 'title', 'hashtags', 'summary') can be included as appropriate for the content type."
                 "Do NOT include any explanatory text outside the JSON object."
             )
         else:
-            user_prompt_elements.append(f"Output MUST be plain textual content, formatted appropriately for its type.")
+            user_prompt_elements.append(
+                "Output MUST be plain textual content, formatted appropriately for its type."
+            )
 
         # Join all user prompt elements
         user_prompt = "\n".join(user_prompt_elements)
 
         # Combine system prompt with the specific user request
-        combined_full_prompt = self.SYSTEM_PROMPT + "\n\n--- Content Generation Request ---\n" + user_prompt
+        combined_full_prompt = (
+            self.SYSTEM_PROMPT + "\n\n--- Content Generation Request ---\n" + user_prompt
+        )
 
         try:
             # Assuming self.llm.generate is an async method that returns a string
             logger.debug("Sending combined prompt to LLM for generation...")
             generated_content = await self.llm.generate(combined_full_prompt)
-            
+
             logger.info(f"GenerativeContentAgent successfully generated '{content_type}' content.")
-            logger.debug(f"Generated Content Snippet (first 200 chars): {generated_content[:200]}...")
+            logger.debug(
+                f"Generated Content Snippet (first 200 chars): {generated_content[:200]}..."
+            )
 
             # If JSON output was requested, attempt to parse it for validation
-            if output_format == 'json':
+            if output_format == "json":
                 try:
-                    json.loads(generated_content) # Just try to load to confirm it's valid JSON
+                    json.loads(generated_content)  # Just try to load to confirm it's valid JSON
                     logger.debug("Generated content is valid JSON as requested.")
                 except json.JSONDecodeError as e:
-                    logger.warning(f"Generated content was requested as JSON but is not valid JSON. Error: {e}. Content: {generated_content}")
+                    logger.warning(
+                        f"Generated content was requested as JSON but is not valid JSON. Error: {e}. Content: {generated_content}"
+                    )
                     # Decide whether to raise, correct, or return as is. For now, log and return.
-            
+
             return generated_content
-            
+
         except Exception as e:
-            logger.error(f"Error during content generation by GenerativeContentAgent for content type '{content_type}': {e}", exc_info=True)
+            logger.error(
+                f"Error during content generation by GenerativeContentAgent for content type '{content_type}': {e}",
+                exc_info=True,
+            )
             # Re-raise the exception after logging for upstream handling by the orchestrator or calling agent
             raise

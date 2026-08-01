@@ -73,10 +73,12 @@ class PublishingAgent(BaseAgent):
                 # Use datetime.now() not utcnow() to match database timezone
                 now = datetime.now()
 
-                ready_plans = db.query(ContentPlan).filter(
-                    ContentPlan.status == "ready",
-                    ContentPlan.scheduled_for <= now
-                ).limit(10).all()
+                ready_plans = (
+                    db.query(ContentPlan)
+                    .filter(ContentPlan.status == "ready", ContentPlan.scheduled_for <= now)
+                    .limit(10)
+                    .all()
+                )
 
                 for plan in ready_plans:
                     try:
@@ -106,11 +108,11 @@ class PublishingAgent(BaseAgent):
 
             if self.human_in_the_loop and results["awaiting_approval"] > 0:
                 self.log_info(
-                    f"{results['awaiting_approval']} content pieces " "awaiting human approval"
+                    f"{results['awaiting_approval']} content pieces awaiting human approval"
                 )
             else:
                 self.log_info(
-                    f"Publishing complete: {results['content_published']} " "pieces published"
+                    f"Publishing complete: {results['content_published']} pieces published"
                 )
 
         except Exception as e:
@@ -276,10 +278,8 @@ class PublishingAgent(BaseAgent):
             f"${insight.asset} {insight.type.value.upper()} detected "
             f"(confidence: {insight.confidence:.0%}) 🚨",
             f"Analysis: {insight.details.get('llm_analysis', 'Market data analysis...')}",
-            f"Key metrics:\n"
-            f"• Confidence: {insight.confidence:.0%}\n"
-            f"• Type: {insight.type.value}",
-            f"This is based on our proprietary analysis. " f"Always DYOR! #crypto #{insight.asset}",
+            f"Key metrics:\n• Confidence: {insight.confidence:.0%}\n• Type: {insight.type.value}",
+            f"This is based on our proprietary analysis. Always DYOR! #crypto #{insight.asset}",
         ]
 
     def _save_published_content(
@@ -328,7 +328,7 @@ class PublishingAgent(BaseAgent):
 
             if plan.status != "awaiting_approval":
                 self.log_warning(
-                    f"Content plan {plan_id} is not awaiting approval " f"(status: {plan.status})"
+                    f"Content plan {plan_id} is not awaiting approval (status: {plan.status})"
                 )
                 return False
 

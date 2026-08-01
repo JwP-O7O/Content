@@ -235,7 +235,7 @@ Respond with JSON:
         """
         try:
             self.log_info(
-                f"Applying coordinated action: {action['action']} " f"to {action['component']}"
+                f"Applying coordinated action: {action['action']} to {action['component']}"
             )
 
             # In a production system, this would actually update agent configurations
@@ -377,12 +377,12 @@ Format as markdown."""
 {len(ab_learnings)} tests completed
 
 ## Optimizations Applied
-{opt_history['total_optimizations']} optimizations
+{opt_history["total_optimizations"]} optimizations
 
 ## ROI
-- Revenue: ${roi_metrics['total_revenue']:.2f}
-- ROI: {roi_metrics['roi_percentage']:.1f}%
-- Conversion Efficiency: {roi_metrics['conversion_efficiency']:.1f}%
+- Revenue: ${roi_metrics["total_revenue"]:.2f}
+- ROI: {roi_metrics["roi_percentage"]:.1f}%
+- Conversion Efficiency: {roi_metrics["conversion_efficiency"]:.1f}%
 """
 
     async def get_system_health_score(self) -> dict:
