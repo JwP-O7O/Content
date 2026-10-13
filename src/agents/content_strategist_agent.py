@@ -173,8 +173,8 @@ class ContentStrategistAgent(BaseAgent):
         else:
             priority = "low"
 
-        # Schedule for next optimal time
-        scheduled_time = self._get_next_optimal_time()
+        # Schedule for immediate publication during autonomous cycles
+        scheduled_time = datetime.now()
 
         content_plan = ContentPlan(
             insight_id=insight.id,
