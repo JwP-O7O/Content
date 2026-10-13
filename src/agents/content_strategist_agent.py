@@ -1,6 +1,7 @@
 """ContentStrategistAgent - Plans content strategy based on insights."""
 
 from datetime import datetime, timedelta, timezone
+from sqlalchemy.orm import joinedload
 
 from src.agents.base_agent import BaseAgent
 from src.database.connection import get_db
@@ -139,6 +140,7 @@ class ContentStrategistAgent(BaseAgent):
             cutoff_time = datetime.now(tz=timezone.utc) - timedelta(hours=24)
             return (
                 db.query(Insight)
+                .options(joinedload(Insight.content_plans))
                 .filter(Insight.is_published.is_(False), Insight.timestamp >= cutoff_time)
                 .order_by(Insight.confidence.desc())
                 .all()

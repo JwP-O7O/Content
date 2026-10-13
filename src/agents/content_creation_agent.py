@@ -54,7 +54,6 @@ class ContentCreationAgent(BaseAgent):
             ),
         }
 
-    async def execute(self) -> dict:
     async def execute(self, *args, **kwargs) -> Dict:
         """
         Execute content creation for pending content plans.
@@ -267,10 +266,6 @@ Requirements:
 Tweet:"""
 
         try:
-            message = self.llm_client.messages.create(
-                model="claude-3-5-sonnet-20241022",
-                max_tokens=150,
-                messages=[{"role": "user", "content": prompt}],
             # Use Gemini by default (Anthropic has no credits)
             tweet_text = await self.llm_client.generate(
                 prompt=prompt,
@@ -323,10 +318,6 @@ Return as a JSON array of strings, e.g.:
 Thread:"""
 
         try:
-            message = self.llm_client.messages.create(
-                model="claude-3-5-sonnet-20241022",
-                max_tokens=800,
-                messages=[{"role": "user", "content": prompt}],
             # Use Gemini by default (Anthropic has no credits)
             response_text = await self.llm_client.generate(
                 prompt=prompt,
@@ -387,10 +378,6 @@ Requirements:
 Message:"""
 
         try:
-            message = self.llm_client.messages.create(
-                model="claude-3-5-sonnet-20241022",
-                max_tokens=500,
-                messages=[{"role": "user", "content": prompt}],
             # Use Gemini by default (Anthropic has no credits)
             telegram_text = await self.llm_client.generate(
                 prompt=prompt,
@@ -432,10 +419,6 @@ Requirements:
 Blog Post:"""
 
         try:
-            message = self.llm_client.messages.create(
-                model="claude-3-5-sonnet-20241022",
-                max_tokens=1500,
-                messages=[{"role": "user", "content": prompt}],
             # Use Gemini by default (Anthropic has no credits)
             blog_text = await self.llm_client.generate(
                 prompt=prompt,

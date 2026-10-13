@@ -2,7 +2,6 @@
 
 from typing import Optional
 
-import tweepy
 from loguru import logger
 
 try:

@@ -391,13 +391,9 @@ Provide a concise, professional analysis (2-3 sentences) explaining:
 
 Be factual and avoid speculation. Focus on what the data shows."""
 
-            message = self.llm_client.messages.create(
-                model="claude-3-5-sonnet-20241022",
-                max_tokens=300,
-                messages=[{"role": "user", "content": prompt}],
             return await self.llm_client.generate(
                 prompt=prompt,
-                model="gemini", # Default to Gemini but client handles fallback
+                model="gemini",  # Default to Gemini but client handles fallback
                 max_tokens=300
             )
 

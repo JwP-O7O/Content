@@ -2,8 +2,13 @@
 
 from typing import Optional
 
-import discord
-from discord.ext import commands
+try:
+    import discord
+    from discord.ext import commands
+except ImportError:
+    discord = None
+    commands = None
+
 from loguru import logger
 
 
