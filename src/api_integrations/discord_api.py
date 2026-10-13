@@ -1,6 +1,7 @@
 """Discord API integration for private community management."""
+from __future__ import annotations
 
-from typing import Optional
+from typing import Optional, Any
 
 try:
     import discord
@@ -25,6 +26,9 @@ class DiscordAPI:
             bot_token: Discord bot token
             guild_id: Discord server (guild) ID
         """
+        if not discord or not commands:
+            raise ImportError("discord.py is required for DiscordAPI but is not installed")
+
         self.bot_token = bot_token
         self.guild_id = guild_id
 
